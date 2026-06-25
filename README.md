@@ -16,6 +16,22 @@
 - 테스트: 백엔드 단위 테스트 74개 기준
 - 보안 검증: 정적/런타임 21개 항목 기준
 
+## 실제 화면 캡처
+
+아래 이미지는 로컬 앱(`http://127.0.0.1:5173`)을 실제로 실행한 뒤 캡처한 화면이다. 검색 예시는 `Blast Furnace`이며, 앱에는 한국어 매니페스트 이름인 `폭발 용광로`로 표시된다.
+
+### 빌더 기본 화면
+
+![빌더 기본 화면](docs/assets/screenshots/builder-overview.png)
+
+### 무기 검색 결과
+
+![폭발 용광로 검색 결과](docs/assets/screenshots/weapon-search-blast-furnace.png)
+
+### 선택된 무기 빌더 화면
+
+![폭발 용광로 빌더 화면](docs/assets/screenshots/builder-blast-furnace-roll.png)
+
 ## 문서 기준
 
 루트 README는 전체 프로젝트의 입구다. 기능 상세, 변경 이력, API/DB 구조, 실행 환경, 보안 검증은 `docs/MD/` 문서를 기준으로 관리한다.
