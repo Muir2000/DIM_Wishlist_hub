@@ -1,0 +1,1190 @@
+{
+  "manifest": {
+    "version": "SEED-SAMPLE-v3",
+    "locale": "ko"
+  },
+  "weapons": [
+    {
+      "item_hash": 3184681056,
+      "name_ko": "프랙테시스트",
+      "name_en": "Fractethyst",
+      "tier": 5,
+      "weapon_subtype": 7,
+      "ammo_type": 2,
+      "slot": "Energy",
+      "default_damage_type": "Stasis",
+      "columns": [
+        {
+          "index": 0,
+          "kind": "barrel",
+          "perks": [
+            {
+              "plug_hash": 2015611004,
+              "name_ko": "라이플 총열",
+              "name_en": "Rifled Barrel",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1,
+              "stats": {
+                "range": 25,
+                "handling": -10
+              }
+            },
+            {
+              "plug_hash": 2015611005,
+              "name_ko": "풀 초크",
+              "name_en": "Full Choke",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "range": 5,
+                "stability": 5
+              }
+            },
+            {
+              "plug_hash": 2015611006,
+              "name_ko": "연마된 총열",
+              "name_en": "Smallbore",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "range": 7,
+                "stability": 7
+              }
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "kind": "magazine",
+          "perks": [
+            {
+              "plug_hash": 3015611001,
+              "name_ko": "점결식 탄환",
+              "name_en": "Accurized Rounds",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1,
+              "stats": {
+                "range": 10
+              }
+            },
+            {
+              "plug_hash": 3015611004,
+              "name_ko": "추가 탄창",
+              "name_en": "Appended Mag",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 3015611005,
+              "name_ko": "어썰트 탄창",
+              "name_en": "Assault Mag",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "stability": 10
+              }
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "kind": "trait",
+          "perks": [
+            {
+              "plug_hash": 1015611463,
+              "name_ko": "개방 일제사격",
+              "name_en": "Opening Shot",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1
+            },
+            {
+              "plug_hash": 1015611468,
+              "name_ko": "미끄러지기",
+              "name_en": "Slideshot",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611460,
+              "name_ko": "재구성",
+              "name_en": "Reconstruction",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611461,
+              "name_ko": "존속",
+              "name_en": "Subsistence",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "kind": "trait",
+          "perks": [
+            {
+              "plug_hash": 1015611466,
+              "name_ko": "묘비",
+              "name_en": "Headstone",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1
+            },
+            {
+              "plug_hash": 1015611462,
+              "name_ko": "폭주",
+              "name_en": "Rampage",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611459,
+              "name_ko": "광란",
+              "name_en": "Frenzy",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611458,
+              "name_ko": "킬 클립",
+              "name_en": "Kill Clip",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            }
+          ]
+        }
+      ],
+      "stats": {
+        "impact": 80,
+        "range": 35,
+        "stability": 45,
+        "handling": 52,
+        "reload": 50,
+        "magazine": 5,
+        "rpm": 55,
+        "aim_assist": 48
+      },
+      "frame": "경량 프레임",
+      "frame_hash": 9001
+    },
+    {
+      "item_hash": 2009277538,
+      "name_ko": "팔린드롬",
+      "name_en": "The Palindrome",
+      "tier": 5,
+      "weapon_subtype": 9,
+      "ammo_type": 1,
+      "slot": "Energy",
+      "default_damage_type": "Void",
+      "columns": [
+        {
+          "index": 0,
+          "kind": "barrel",
+          "perks": [
+            {
+              "plug_hash": 2015611001,
+              "name_ko": "코르크스크루 라이플링",
+              "name_en": "Corkscrew Rifling",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1,
+              "stats": {
+                "range": 5,
+                "stability": 5,
+                "handling": 5
+              }
+            },
+            {
+              "plug_hash": 2015611002,
+              "name_ko": "화살촉 제동기",
+              "name_en": "Arrowhead Brake",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "handling": 15
+              }
+            },
+            {
+              "plug_hash": 2015611003,
+              "name_ko": "풀 보어",
+              "name_en": "Full Bore",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "range": 10,
+                "stability": -10,
+                "handling": -5
+              }
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "kind": "magazine",
+          "perks": [
+            {
+              "plug_hash": 3015611001,
+              "name_ko": "점결식 탄환",
+              "name_en": "Accurized Rounds",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "range": 10
+              }
+            },
+            {
+              "plug_hash": 3015611002,
+              "name_ko": "전술 탄창",
+              "name_en": "Tactical Mag",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1,
+              "stats": {
+                "stability": 10,
+                "reload": 10
+              }
+            },
+            {
+              "plug_hash": 3015611003,
+              "name_ko": "확장 탄창",
+              "name_en": "Extended Mag",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "reload": -10,
+                "handling": -5
+              }
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "kind": "trait",
+          "perks": [
+            {
+              "plug_hash": 1015611457,
+              "name_ko": "무법자",
+              "name_en": "Outlaw",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1
+            },
+            {
+              "plug_hash": 1015611464,
+              "name_ko": "네 번째 시도",
+              "name_en": "Fourth Time's the Charm",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611460,
+              "name_ko": "재구성",
+              "name_en": "Reconstruction",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611465,
+              "name_ko": "선 모먼트",
+              "name_en": "Zen Moment",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "kind": "trait",
+          "perks": [
+            {
+              "plug_hash": 1015611458,
+              "name_ko": "킬 클립",
+              "name_en": "Kill Clip",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1
+            },
+            {
+              "plug_hash": 1015611462,
+              "name_ko": "폭주",
+              "name_en": "Rampage",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611467,
+              "name_ko": "멀티킬 클립",
+              "name_en": "Multikill Clip",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611463,
+              "name_ko": "개방 일제사격",
+              "name_en": "Opening Shot",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            }
+          ]
+        }
+      ],
+      "stats": {
+        "impact": 84,
+        "range": 68,
+        "stability": 50,
+        "handling": 47,
+        "reload": 45,
+        "magazine": 11,
+        "rpm": 140,
+        "aim_assist": 70
+      },
+      "frame": "적응형 프레임",
+      "frame_hash": 9002
+    },
+    {
+      "item_hash": 3851176026,
+      "name_ko": "BxR-55 배틀러",
+      "name_en": "BxR-55 Battler",
+      "tier": 5,
+      "weapon_subtype": 13,
+      "ammo_type": 1,
+      "slot": "Kinetic",
+      "default_damage_type": "Kinetic",
+      "columns": [
+        {
+          "index": 0,
+          "kind": "barrel",
+          "perks": [
+            {
+              "plug_hash": 2015611001,
+              "name_ko": "코르크스크루 라이플링",
+              "name_en": "Corkscrew Rifling",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "range": 5,
+                "stability": 5,
+                "handling": 5
+              }
+            },
+            {
+              "plug_hash": 2015611003,
+              "name_ko": "풀 보어",
+              "name_en": "Full Bore",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1,
+              "stats": {
+                "range": 10,
+                "stability": -10,
+                "handling": -5
+              }
+            },
+            {
+              "plug_hash": 2015611006,
+              "name_ko": "연마된 총열",
+              "name_en": "Smallbore",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "range": 7,
+                "stability": 7
+              }
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "kind": "magazine",
+          "perks": [
+            {
+              "plug_hash": 3015611001,
+              "name_ko": "점결식 탄환",
+              "name_en": "Accurized Rounds",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1,
+              "stats": {
+                "range": 10
+              }
+            },
+            {
+              "plug_hash": 3015611002,
+              "name_ko": "전술 탄창",
+              "name_en": "Tactical Mag",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "stability": 10,
+                "reload": 10
+              }
+            },
+            {
+              "plug_hash": 3015611003,
+              "name_ko": "확장 탄창",
+              "name_en": "Extended Mag",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "reload": -10,
+                "handling": -5
+              }
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "kind": "trait",
+          "perks": [
+            {
+              "plug_hash": 1015611457,
+              "name_ko": "무법자",
+              "name_en": "Outlaw",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611460,
+              "name_ko": "재구성",
+              "name_en": "Reconstruction",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1
+            },
+            {
+              "plug_hash": 1015611461,
+              "name_ko": "존속",
+              "name_en": "Subsistence",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611465,
+              "name_ko": "선 모먼트",
+              "name_en": "Zen Moment",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "kind": "trait",
+          "perks": [
+            {
+              "plug_hash": 1015611458,
+              "name_ko": "킬 클립",
+              "name_en": "Kill Clip",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611459,
+              "name_ko": "광란",
+              "name_en": "Frenzy",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1
+            },
+            {
+              "plug_hash": 1015611462,
+              "name_ko": "폭주",
+              "name_en": "Rampage",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611470,
+              "name_ko": "골절",
+              "name_en": "Adagio",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            }
+          ]
+        }
+      ],
+      "stats": {
+        "impact": 27,
+        "range": 62,
+        "stability": 55,
+        "handling": 40,
+        "reload": 42,
+        "magazine": 37,
+        "rpm": 340,
+        "aim_assist": 65
+      },
+      "frame": "고속 연사 프레임",
+      "frame_hash": 9003
+    },
+    {
+      "item_hash": 2933076918,
+      "name_ko": "퍼널웹",
+      "name_en": "Funnelweb",
+      "tier": 5,
+      "weapon_subtype": 24,
+      "ammo_type": 1,
+      "slot": "Energy",
+      "default_damage_type": "Void",
+      "columns": [
+        {
+          "index": 0,
+          "kind": "barrel",
+          "perks": [
+            {
+              "plug_hash": 2015611001,
+              "name_ko": "코르크스크루 라이플링",
+              "name_en": "Corkscrew Rifling",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1,
+              "stats": {
+                "range": 5,
+                "stability": 5,
+                "handling": 5
+              }
+            },
+            {
+              "plug_hash": 2015611002,
+              "name_ko": "화살촉 제동기",
+              "name_en": "Arrowhead Brake",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "handling": 15
+              }
+            },
+            {
+              "plug_hash": 2015611006,
+              "name_ko": "연마된 총열",
+              "name_en": "Smallbore",
+              "icon": null,
+              "plug_category": "barrel",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "range": 7,
+                "stability": 7
+              }
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "kind": "magazine",
+          "perks": [
+            {
+              "plug_hash": 3015611001,
+              "name_ko": "점결식 탄환",
+              "name_en": "Accurized Rounds",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0,
+              "stats": {
+                "range": 10
+              }
+            },
+            {
+              "plug_hash": 3015611003,
+              "name_ko": "확장 탄창",
+              "name_en": "Extended Mag",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1,
+              "stats": {
+                "reload": -10,
+                "handling": -5
+              }
+            },
+            {
+              "plug_hash": 3015611004,
+              "name_ko": "추가 탄창",
+              "name_en": "Appended Mag",
+              "icon": null,
+              "plug_category": "magazine",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "kind": "trait",
+          "perks": [
+            {
+              "plug_hash": 1015611461,
+              "name_ko": "존속",
+              "name_en": "Subsistence",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1
+            },
+            {
+              "plug_hash": 1015611460,
+              "name_ko": "재구성",
+              "name_en": "Reconstruction",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611469,
+              "name_ko": "탄막",
+              "name_en": "Demolitionist",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611457,
+              "name_ko": "무법자",
+              "name_en": "Outlaw",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "kind": "trait",
+          "perks": [
+            {
+              "plug_hash": 1015611459,
+              "name_ko": "광란",
+              "name_en": "Frenzy",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 1
+            },
+            {
+              "plug_hash": 1015611462,
+              "name_ko": "폭주",
+              "name_en": "Rampage",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611458,
+              "name_ko": "킬 클립",
+              "name_en": "Kill Clip",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            },
+            {
+              "plug_hash": 1015611470,
+              "name_ko": "골절",
+              "name_en": "Adagio",
+              "icon": null,
+              "plug_category": "trait",
+              "is_enhanced": 0,
+              "base_plug_hash": null,
+              "currently_can_roll": 1,
+              "is_curated": 0
+            }
+          ]
+        }
+      ],
+      "stats": {
+        "impact": 22,
+        "range": 40,
+        "stability": 60,
+        "handling": 58,
+        "reload": 53,
+        "magazine": 37,
+        "rpm": 900,
+        "aim_assist": 72
+      },
+      "frame": "적응형 프레임",
+      "frame_hash": 9002
+    }
+  ],
+  "stat_defs": [
+    {
+      "stat_hash": 4043523819,
+      "key": "impact",
+      "name_ko": "충격력",
+      "name_en": "Impact"
+    },
+    {
+      "stat_hash": 1240592695,
+      "key": "range",
+      "name_ko": "사거리",
+      "name_en": "Range"
+    },
+    {
+      "stat_hash": 155624089,
+      "key": "stability",
+      "name_ko": "안정성",
+      "name_en": "Stability"
+    },
+    {
+      "stat_hash": 943549884,
+      "key": "handling",
+      "name_ko": "조작성",
+      "name_en": "Handling"
+    },
+    {
+      "stat_hash": 4188031367,
+      "key": "reload",
+      "name_ko": "재장전 속도",
+      "name_en": "Reload Speed"
+    },
+    {
+      "stat_hash": 3871231066,
+      "key": "magazine",
+      "name_ko": "탄창",
+      "name_en": "Magazine"
+    },
+    {
+      "stat_hash": 1345867579,
+      "key": "aim_assist",
+      "name_ko": "조준 보정",
+      "name_en": "Aim Assistance"
+    },
+    {
+      "stat_hash": 2715839340,
+      "key": "recoil",
+      "name_ko": "반동 방향",
+      "name_en": "Recoil Direction"
+    },
+    {
+      "stat_hash": 3022809290,
+      "key": "zoom",
+      "name_ko": "확대",
+      "name_en": "Zoom"
+    },
+    {
+      "stat_hash": 4284893561,
+      "key": "rpm",
+      "name_ko": "분당 발사수",
+      "name_en": "Rounds Per Minute"
+    }
+  ],
+  "roll_stats": [
+    {
+      "weapon_hash": 3184681056,
+      "column_index": 2,
+      "plug_hash": 1015611463,
+      "count": 120,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3184681056,
+      "column_index": 2,
+      "plug_hash": 1015611460,
+      "count": 95,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3184681056,
+      "column_index": 2,
+      "plug_hash": 1015611461,
+      "count": 60,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3184681056,
+      "column_index": 2,
+      "plug_hash": 1015611468,
+      "count": 30,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3184681056,
+      "column_index": 3,
+      "plug_hash": 1015611466,
+      "count": 140,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3184681056,
+      "column_index": 3,
+      "plug_hash": 1015611459,
+      "count": 110,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3184681056,
+      "column_index": 3,
+      "plug_hash": 1015611462,
+      "count": 70,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3184681056,
+      "column_index": 3,
+      "plug_hash": 1015611458,
+      "count": 45,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2009277538,
+      "column_index": 2,
+      "plug_hash": 1015611457,
+      "count": 200,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2009277538,
+      "column_index": 2,
+      "plug_hash": 1015611460,
+      "count": 130,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2009277538,
+      "column_index": 2,
+      "plug_hash": 1015611465,
+      "count": 80,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2009277538,
+      "column_index": 2,
+      "plug_hash": 1015611464,
+      "count": 40,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2009277538,
+      "column_index": 3,
+      "plug_hash": 1015611458,
+      "count": 175,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2009277538,
+      "column_index": 3,
+      "plug_hash": 1015611467,
+      "count": 120,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2009277538,
+      "column_index": 3,
+      "plug_hash": 1015611462,
+      "count": 90,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2009277538,
+      "column_index": 3,
+      "plug_hash": 1015611463,
+      "count": 35,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3851176026,
+      "column_index": 2,
+      "plug_hash": 1015611460,
+      "count": 150,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3851176026,
+      "column_index": 2,
+      "plug_hash": 1015611457,
+      "count": 140,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3851176026,
+      "column_index": 2,
+      "plug_hash": 1015611461,
+      "count": 70,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3851176026,
+      "column_index": 2,
+      "plug_hash": 1015611465,
+      "count": 55,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3851176026,
+      "column_index": 3,
+      "plug_hash": 1015611459,
+      "count": 160,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3851176026,
+      "column_index": 3,
+      "plug_hash": 1015611458,
+      "count": 130,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3851176026,
+      "column_index": 3,
+      "plug_hash": 1015611470,
+      "count": 60,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 3851176026,
+      "column_index": 3,
+      "plug_hash": 1015611462,
+      "count": 50,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2933076918,
+      "column_index": 2,
+      "plug_hash": 1015611461,
+      "count": 180,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2933076918,
+      "column_index": 2,
+      "plug_hash": 1015611460,
+      "count": 100,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2933076918,
+      "column_index": 2,
+      "plug_hash": 1015611457,
+      "count": 75,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2933076918,
+      "column_index": 2,
+      "plug_hash": 1015611469,
+      "count": 65,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2933076918,
+      "column_index": 3,
+      "plug_hash": 1015611459,
+      "count": 190,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2933076918,
+      "column_index": 3,
+      "plug_hash": 1015611458,
+      "count": 120,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2933076918,
+      "column_index": 3,
+      "plug_hash": 1015611462,
+      "count": 80,
+      "source": "voltron"
+    },
+    {
+      "weapon_hash": 2933076918,
+      "column_index": 3,
+      "plug_hash": 1015611470,
+      "count": 40,
+      "source": "voltron"
+    }
+  ]
+}

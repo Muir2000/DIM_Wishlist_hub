@@ -1,0 +1,52 @@
+# DIM Wishlist Hub — Docker Compose
+# 사용:
+#   docker compose up -d --build              # 백엔드 + 프론트엔드 기동 (http://localhost:8080)
+#   docker compose run --rm ingest            # 실제 Bungie 매니페스트 + voltron 적재(영속 볼륨)
+#   docker compose logs -f backend            # 로그
+# 자격증명은 .env 에서 읽습니다(BUNGIE_API_KEY 등).
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    env_file: .env
+    environment:
+      DB_PATH: /app/data/app.sqlite
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+    volumes:
+      - dimdata:/app/data
+    # 127.0.0.1 바인딩: 인증이 없는 단일 사용자 로컬 도구이므로 백엔드(Swagger 포함)를 LAN 에
+    # 노출하지 않는다. LAN 공유가 필요하면 인증을 추가한 뒤 바인딩을 변경할 것.
+    ports:
+      - "127.0.0.1:8000:8000" # 직접 접근/Swagger: http://localhost:8000/docs (로컬 전용)
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    depends_on:
+      - backend
+    # 앱 노출 주소. 기본 127.0.0.1(로컬 전용). LAN 공유하려면 .env 에 WEB_BIND=0.0.0.0 설정.
+    # ⚠ LAN 노출 시 인증이 없으므로 같은 네트워크의 누구나 접근 가능 — 신뢰된 망에서만 사용.
+    ports:
+      - "${WEB_BIND:-127.0.0.1}:8080:80"
+    restart: unless-stopped
+
+  # 일회성 적재기 (기본 기동에서 제외; profiles=tools).
+  #   docker compose run --rm ingest
+  ingest:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    env_file: .env
+    environment:
+      DB_PATH: /app/data/app.sqlite
+    volumes:
+      - dimdata:/app/data
+    profiles: ["tools"]
+    command: ["sh", "-c", "python -m ingest.manifest_ingest && python -m ingest.voltron_bootstrap"]
+
+volumes:
+  dimdata:
