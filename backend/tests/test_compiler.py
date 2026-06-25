@@ -92,7 +92,7 @@ class TestTrashAndWildcard(unittest.TestCase):
 
 class TestEnhancedMapping(unittest.TestCase):
     def test_enhanced_mapped_to_base(self):
-        ENHANCED = 9999999999  # 강화 퍼크 해시(가상)
+        ENHANCED = 9999999999  # 강화 퍽 해시(가상)
         base_map = {ENHANCED: PERK_A}
         lines = compile_roll(RollRequest(FRACTETHYST, {3: [ENHANCED]}), base_map=base_map)
         self.assertEqual(lines, [f"dimwishlist:item={FRACTETHYST}&perks={PERK_A}"])
@@ -203,7 +203,7 @@ class TestRoundTrip(unittest.TestCase):
 class TestVariantExpansion(unittest.TestCase):
     """복각/홀로포일 변형 확장 — 같은 롤이 변형 hash 들에도 emit 되어야 함."""
 
-    SIBLING_HOLO = 9991111   # 홀로포일(동일 퍽풀)
+    SIBLING_HOLO = 9991111   # 홀로포일(동일 퍽 풀)
     SIBLING_OLD = 9992222    # 구버전 복각(PERK_B 못 굴림)
 
     def test_holofoil_gets_same_roll(self):

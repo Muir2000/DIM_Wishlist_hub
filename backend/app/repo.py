@@ -310,7 +310,7 @@ def season_count(conn: sqlite3.Connection, item_hash: int) -> int:
 
 
 def weapon_perk_columns(conn: sqlite3.Connection, item_hash: int) -> Dict[int, int]:
-    """{plug_hash: column_index} — 가져온 위시리스트 퍼크를 올바른 열로 매핑."""
+    """{plug_hash: column_index} — 가져온 위시리스트 퍽을 올바른 열로 매핑."""
     return {r["plug_hash"]: r["column_index"] for r in conn.execute(
         "SELECT plug_hash, column_index FROM weapon_perks WHERE weapon_hash = ?", (item_hash,)).fetchall()}
 
@@ -433,7 +433,7 @@ def top_weapons(conn: sqlite3.Connection, limit: int = 20) -> List[sqlite3.Row]:
 
 
 def enhanced_base_map(conn: sqlite3.Connection) -> Dict[int, int]:
-    """강화 퍼크 -> 기본 퍼크 해시 매핑 (컴파일 시 base 만 emit)."""
+    """강화 퍽 -> 기본 퍽 해시 매핑 (컴파일 시 base 만 emit)."""
     rows = conn.execute(
         "SELECT plug_hash, base_plug_hash FROM perks WHERE is_enhanced = 1 AND base_plug_hash IS NOT NULL"
     ).fetchall()

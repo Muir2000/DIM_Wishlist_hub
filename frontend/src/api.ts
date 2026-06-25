@@ -351,7 +351,7 @@ export const inventoryApi = {
     ),
 };
 
-export const CLASS_LABEL: Record<string, string> = { god: "갓롤", viable: "쓸만함", trash: "정리후보" };
+export const CLASS_LABEL: Record<string, string> = { god: "갓롤", viable: "쓸만함", trash: "정리 후보" };
 export const CLASS_COLOR: Record<string, string> = {
   god: "var(--primary)",
   viable: "var(--community)",

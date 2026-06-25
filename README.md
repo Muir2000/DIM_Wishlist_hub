@@ -1,10 +1,10 @@
 # DIM Wishlist Maker Hub
 
-데스티니 가디언즈(Destiny 2) 유저가 웹에서 무기와 퍼크를 선택해 **DIM(Destiny Item Manager) 호환 위시리스트**를 만들고, 가져오고, 점수화하고, 내 창고 정리까지 이어갈 수 있는 로컬 웹앱이다.
+데스티니 가디언즈(Destiny 2) 유저가 웹에서 무기와 퍽을 선택해 **DIM(Destiny Item Manager) 호환 위시리스트**를 만들고, 가져오고, 점수화하고, 내 창고 정리까지 이어갈 수 있는 로컬 웹앱이다.
 
 핵심 목표는 두 가지다.
 
-- **시각적 편의성**: 해시값을 직접 다루지 않고 무기/퍼크를 검색하고 클릭해서 롤을 구성한다.
+- **시각적 편의성**: 해시값을 직접 다루지 않고 무기/퍽을 검색하고 클릭해서 롤을 구성한다.
 - **데이터 정확성**: Bungie 매니페스트, 시즌/복각/홀로포일 변형, DIM 위시리스트 포맷 규칙을 최대한 정확히 반영한다.
 
 ## 현재 상태
@@ -12,7 +12,7 @@
 - 구현 상태: 주요 기능 구현 및 검증 완료
 - 기본 실행 방식: Docker Compose 또는 로컬 개발 서버
 - 기본 접근 범위: 단일 사용자 로컬 도구, published 포트는 기본 `127.0.0.1` 바인딩
-- 데이터 모드: Bungie API 키 없이 seed 데이터로 즉시 구동, API 키 설정 시 실제 매니페스트 적재 가능
+- 데이터 모드: Bungie API 키 없이 시드 데이터로 즉시 구동, API 키 설정 시 실제 매니페스트 적재 가능
 - 테스트: 백엔드 단위 테스트 74개 기준
 - 보안 검증: 정적/런타임 21개 항목 기준
 
@@ -59,10 +59,10 @@ README에는 전체 프로젝트를 처음 보는 사람이 흐름을 잡을 수
 | 무기 검색/필터 | 헤더 검색, 자동완성, 컨텍스트 인지 패싯, 속성/종류/등급/슬롯/탄약/프레임/기원/시즌 필터, 15스탯 min/max, 퍽 보유/제외 | 구현 |
 | DIM식 텍스트 쿼리 | `is:`, `perkname:`, `stat:`, `season:`, `frame:`, `origin:`, `and/or/not`, 괄호 지원 | 구현 |
 | 변형/복각/시즌 처리 | 홀로포일, 에이뎁트, 시즌별 복각 구분, watermark 기반 시즌 라벨, 변형 그룹 자동 전개 | 구현 |
-| 비주얼 퍼크 빌더 | 무기별 컬럼 퍼크 풀, 퍼크 설명/스탯 델타 툴팁, 실시간 스탯 패널, 인기도 막대 | 구현 |
-| DIM 위시리스트 컴파일 | 다중 퍼크 OR를 다중 줄로 전개, 트래시롤, 와일드카드, 태그, 메모, LF/BOM 없음 | 구현 |
+| 비주얼 퍽 빌더 | 무기별 컬럼 퍽 풀, 퍽 설명/스탯 델타 툴팁, 실시간 스탯 패널, 인기도 막대 | 구현 |
+| DIM 위시리스트 컴파일 | 다중 퍽 OR를 다중 줄로 전개, 트래시 롤, 와일드카드, 태그, 메모, LF/BOM 없음 | 구현 |
 | 위시리스트 가져오기 | 외부 DIM `.txt` 파싱, 헤더/주석/노트 처리, 카르테시안 전개 역병합, 실제 열 매핑 | 구현 |
-| 위시리스트 내보내기 | 완성 목록 미리보기, `.txt` 다운로드, seed 모드 경고 | 구현 |
+| 위시리스트 내보내기 | 완성 목록 미리보기, `.txt` 다운로드, 시드 모드 경고 | 구현 |
 | 점수화 | 위시리스트 기반 퍽 선호도/조합 학습, 스코프 블렌드, 열 비중, coverage, 퍽별 점수 배지 | 구현 |
 | 내 창고 정리 | Bungie OAuth 또는 데모 창고, 보유 무기 채점, 정리 후보, DIM 트래시리스트 내보내기 | 구현 |
 | 커뮤니티 메타 | voltron 기반 인기 무기/퍽 인기도 대시보드 | 구현 |
@@ -91,10 +91,10 @@ DIM_Wishlist_hub/
 │  │  ├─ scoring.py          위시리스트 기반 점수화
 │  │  ├─ seasons.py          watermark→시즌 매핑
 │  │  └─ routers/            weapons, wishlist, scoring, auth, inventory, meta
-│  ├─ seed/                  seed 데이터 생성/샘플 데이터
+│  ├─ seed/                  시드 데이터 생성/샘플 데이터
 │  └─ tests/                 compiler/query/scoring 단위 테스트
 ├─ frontend/                 Vite + React + TypeScript SPA
-│  └─ src/components/        빌더, 검색, 퍼크 그리드, 점수 기준, 창고, 메타 UI
+│  └─ src/components/        빌더, 검색, 퍽 그리드, 점수 기준, 창고, 메타 UI
 ├─ ingest/                   Bungie 매니페스트/voltron 적재 파이프라인
 ├─ docker/                   backend/frontend Dockerfile, nginx 설정
 ├─ scripts/                  dev-local, security_check, LAN helper
@@ -106,7 +106,7 @@ DIM_Wishlist_hub/
 
 ## 빠른 시작: Docker Compose
 
-`.env.example`을 `.env`로 복사하고 필요한 값을 채운다. Bungie API 키가 없어도 seed 데이터로 앱은 실행된다.
+`.env.example`을 `.env`로 복사하고 필요한 값을 채운다. Bungie API 키가 없어도 시드 데이터로 앱은 실행된다.
 
 ```bash
 docker compose up -d --build
@@ -176,7 +176,7 @@ python -m ingest.manifest_ingest
 python -m ingest.voltron_bootstrap
 ```
 
-적재 산출물은 기본적으로 `data/app.sqlite`에 생성된다. 실 DB가 없으면 백엔드는 `backend/seed/seed_data.json` 기반 seed 캐시로 동작한다.
+적재 산출물은 기본적으로 `data/app.sqlite`에 생성된다. 실 DB가 없으면 백엔드는 `backend/seed/seed_data.json` 기반 시드 캐시로 동작한다.
 
 ## DIM 위시리스트 포맷 규칙
 
@@ -185,8 +185,8 @@ python -m ingest.voltron_bootstrap
 - `perks=A,B`의 쉼표는 AND다.
 - 같은 열의 다중 선택은 OR로 보고 여러 `dimwishlist:` 줄로 전개한다.
 - 한 롤의 카르테시안 조합은 최대 2000개로 제한한다.
-- 강화 퍼크는 기본 퍼크 해시로 정규화해 출력한다.
-- 트래시롤은 item hash를 음수화한다.
+- 강화 퍽은 기본 퍽 해시로 정규화해 출력한다.
+- 트래시 롤은 item hash를 음수화한다.
 - 와일드카드는 `item=-69420`이며 desirable 전용이다.
 - `#notes:`의 `|` 문자는 제거한다.
 - 출력은 LF 개행, BOM 없음이다.
@@ -201,13 +201,13 @@ python -m ingest.voltron_bootstrap
 | `GET /weapons` | 무기 검색과 필터링 |
 | `GET /weapons/count` | 현재 검색/필터 매칭 수 |
 | `GET /filters` | 컨텍스트 인지 필터 패싯 |
-| `GET /weapons/{hash}` | 무기 상세와 퍼크 풀 |
+| `GET /weapons/{hash}` | 무기 상세와 퍽 풀 |
 | `POST /compile` | 단일 롤 DIM 줄 미리보기 |
 | `POST /export` | 전체 위시리스트 `.txt` 생성 |
 | `POST /import-wishlist` | 외부 DIM `.txt` 가져오기 |
 | `GET/POST/DELETE /scoring-profiles` | 점수 프로필 관리 |
 | `POST /score` | 선택 롤 점수화 |
-| `POST /score/perk-weights` | 무기 퍼크별 가중치 계산 |
+| `POST /score/perk-weights` | 무기 퍽별 가중치 계산 |
 | `GET /auth/bungie/login` | Bungie OAuth 시작 |
 | `POST /me/sync` | Bungie 창고 동기화 |
 | `POST /me/cleanup` | 보유 무기 정리 후보 계산 |

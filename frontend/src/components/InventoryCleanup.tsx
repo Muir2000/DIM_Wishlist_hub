@@ -55,7 +55,7 @@ export function InventoryCleanup() {
     a.download = res.filename;
     a.click();
     URL.revokeObjectURL(url);
-    setMsg(`정리후보 ${res.trash_count}종을 트래시리스트로 내보냈습니다.`);
+    setMsg(`정리 후보 ${res.trash_count}종을 트래시리스트로 내보냈습니다.`);
   }
 
   const shown = onlyTrash ? items.filter((i) => i.classification === "trash") : items;
@@ -88,10 +88,10 @@ export function InventoryCleanup() {
               <button className="btn ghost" onClick={loadCleanup} disabled={loading}>다시 채점</button>
               <label className="toggle" style={{ cursor: "pointer" }}>
                 <input type="checkbox" checked={onlyTrash} onChange={(e) => setOnlyTrash(e.target.checked)} />
-                정리후보만 ({trashCount})
+                정리 후보만 ({trashCount})
               </label>
               <button className="btn primary" onClick={exportTrash} style={{ marginLeft: "auto" }}>
-                ⬇ 정리리스트 .txt
+                ⬇ 정리 리스트 .txt
               </button>
             </>
           )}
@@ -112,7 +112,7 @@ export function InventoryCleanup() {
                        : <div style={{ width: 36, height: 36, borderRadius: 4, background: "var(--bg)" }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>{it.name} <span className="hint">{it.power ? `· ${it.power}` : ""}</span></div>
-                <div className="hint">{it.perks.map((p) => p.name).filter(Boolean).join(" · ") || "(퍼크 없음)"}</div>
+                <div className="hint">{it.perks.map((p) => p.name).filter(Boolean).join(" · ") || "(퍽 없음)"}</div>
               </div>
               <div
                 className="score-pill"

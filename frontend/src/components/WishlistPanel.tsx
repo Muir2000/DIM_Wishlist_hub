@@ -60,7 +60,7 @@ export function WishlistPanel() {
         </div>
 
         {rolls.length === 0 ? (
-          <div className="empty">추가된 롤이 없습니다.<br />가운데에서 무기·퍼크를 골라 “위시리스트에 추가”를 누르세요.</div>
+          <div className="empty">추가된 롤이 없습니다.<br />가운데에서 무기·퍽을 골라 “위시리스트에 추가”를 누르세요.</div>
         ) : (
           <>
             {exp?.warning && <div className="warning-box">⚠ {exp.warning}</div>}
@@ -75,9 +75,9 @@ export function WishlistPanel() {
             </button>
             <div className="instructions" style={{ marginTop: 14 }}>
               <strong>DIM에 적용</strong> — 설정 → <code>위시 리스트</code> → <code>파일에서 불러오기</code>.
-              매칭 롤에 👍, 트래시롤에 👎. 검색: <code>is:wishlist</code>, <code>wishlistnotes:pvp</code>.
+              매칭 롤에 👍, 트래시 롤에 👎. 검색: <code>is:wishlist</code>, <code>wishlistnotes:pvp</code>.
               <br />
-              <span className="hint">쉼표는 AND, 같은 열의 여러 퍼크는 자동으로 여러 줄로 전개됩니다.</span>
+              <span className="hint">쉼표는 AND, 같은 열의 여러 퍽은 자동으로 여러 줄로 전개됩니다.</span>
             </div>
           </>
         )}

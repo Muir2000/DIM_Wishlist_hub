@@ -2,9 +2,9 @@
 
 light.gg 식 인기도 막대와 메타 대시보드는 데이터 원본이 필요한데, 우리에겐 자체
 유저 데이터가 아직 없다(콜드스타트). 그래서 GitHub 에 호스팅된 voltron.txt 를 파싱해
-무기별·열별 퍼크 추천 빈도를 집계, 출시 시점부터 통계를 채운다.
+무기별·열별 퍽 추천 빈도를 집계, 출시 시점부터 통계를 채운다.
 
-전제: 먼저 manifest_ingest 로 weapon_perks 가 적재되어 있어야 한다(퍼크->열 매핑에 사용).
+전제: 먼저 manifest_ingest 로 weapon_perks 가 적재되어 있어야 한다(퍽->열 매핑에 사용).
 desirable 롤만 집계(트래시/와일드카드 제외).
 
 실행 (repo 루트에서):
@@ -37,7 +37,7 @@ def bootstrap(file: str = None) -> None:
     conn = db.connect(config.DB_PATH)
     db.apply_schema(conn)
 
-    # 퍼크 -> 그 무기에서의 열 인덱스 매핑 (한 퍼크가 여러 열에 있을 수 있어 set)
+    # 퍽 -> 그 무기에서의 열 인덱스 매핑 (한 퍽이 여러 열에 있을 수 있어 set)
     perk_cols = defaultdict(set)
     for r in conn.execute("SELECT weapon_hash, column_index, plug_hash FROM weapon_perks"):
         perk_cols[(r["weapon_hash"], r["plug_hash"])].add(r["column_index"])
@@ -58,7 +58,7 @@ def bootstrap(file: str = None) -> None:
         for ph in parsed["perks"]:
             cols = perk_cols.get((wh, ph))
             if not cols:
-                continue  # 매니페스트에 없는(구버전) 퍼크는 스킵
+                continue  # 매니페스트에 없는(구버전) 퍽은 스킵
             for col in cols:
                 counts[(wh, col, ph)] += 1
         n_lines += 1
@@ -73,7 +73,7 @@ def bootstrap(file: str = None) -> None:
         )
     conn.commit()
     conn.close()
-    print(f"완료: {n_lines} 롤 라인 파싱, {len(counts)} (무기,열,퍼크) 통계 기록.")
+    print(f"완료: {n_lines} 롤 라인 파싱, {len(counts)} (무기,열,퍽) 통계 기록.")
 
 
 def main():

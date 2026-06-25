@@ -164,11 +164,11 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
 
   return (
     <div className="builder-main">
-      {/* 좌: 무기 헤더 + 퍼크 그리드 */}
+      {/* 좌: 무기 헤더 + 퍽 그리드 */}
       <div className="builder-col">
         {!weapon ? (
           <div className="panel">
-            <div className="empty">상단 검색창에서 무기를 검색·선택하면 여기에 퍼크 그리드가 표시됩니다.</div>
+            <div className="empty">상단 검색창에서 무기를 검색·선택하면 여기에 퍽 그리드가 표시됩니다.</div>
           </div>
         ) : (
           <>
@@ -197,10 +197,10 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
                   ) : null}
                 </div>
                 {weapon.season_count && weapon.season_count > 1 && (
-                  <div className="variant-note" title="이 무기는 시즌(복각)마다 퍽풀이 다릅니다. 지금 보는 것은 이 시즌의 퍽풀입니다. 같은 시즌 홀로포일은 동일한 퍽풀을 공유하며, 위시리스트는 굴릴 수 있는 모든 시즌에 자동 적용됩니다.">
-                    ⛓ 이 무기는 <b>{weapon.season_count}개 시즌</b>으로 출시되었고 <b>시즌마다 퍽풀이 다릅니다</b>.
-                    {weapon.has_holofoil && <> 이 시즌엔 홀로포일 ✦(동일 퍽롤)도 있습니다.</>}
-                    {" "}지금은 <b>이 시즌</b>의 퍽풀이며, 위시리스트는 해당 퍽을 굴릴 수 있는 시즌 전체에 적용됩니다.
+                  <div className="variant-note" title="이 무기는 시즌(복각)마다 퍽 풀이 다릅니다. 지금 보는 것은 이 시즌의 퍽 풀입니다. 같은 시즌 홀로포일은 동일한 퍽 풀을 공유하며, 위시리스트는 굴릴 수 있는 모든 시즌에 자동 적용됩니다.">
+                    ⛓ 이 무기는 <b>{weapon.season_count}개 시즌</b>으로 출시되었고 <b>시즌마다 퍽 풀이 다릅니다</b>.
+                    {weapon.has_holofoil && <> 이 시즌엔 홀로포일 ✦(동일 퍽 롤)도 있습니다.</>}
+                    {" "}지금은 <b>이 시즌</b>의 퍽 풀이며, 위시리스트는 해당 퍽을 굴릴 수 있는 시즌 전체에 적용됩니다.
                   </div>
                 )}
               </div>
@@ -208,7 +208,7 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
 
             <div className="panel">
               <div className="panel-head">
-                <span className="panel-title" style={{ margin: 0 }}>퍼크 선택</span>
+                <span className="panel-title" style={{ margin: 0 }}>퍽 선택</span>
                 <span className="panel-actions">열당 여러 개 = OR (줄 전개)</span>
               </div>
 
@@ -295,7 +295,7 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
                   if (!trash) setWildcard(false);
                 }}
               >
-                👎 트래시롤
+                👎 트래시 롤
               </button>
               <button
                 className={`toggle wild ${wildcard ? "on" : ""}`}
@@ -328,8 +328,8 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
             />
 
             <div className="hint" style={{ marginTop: 10 }}>
-              {wildcard ? "와일드카드: item=-69420 " : trash ? "트래시롤: 음수 해시 " : ""}
-              {colCount > 0 ? `· ${comboCount}개 줄로 전개` : "· 퍼크 미선택"}
+              {wildcard ? "와일드카드: item=-69420 " : trash ? "트래시 롤: 음수 해시 " : ""}
+              {colCount > 0 ? `· ${comboCount}개 줄로 전개` : "· 퍽 미선택"}
             </div>
             <button
               className="btn primary"

@@ -2,8 +2,8 @@
 
 - /me/status        : 연동/동기화 상태
 - /me/sync          : Bungie GetProfile → 창고 무기 스냅샷 (OAuth 필요)
-- /me/cleanup       : 각 무기를 점수 프로필로 채점·분류 (정리후보 판별)
-- /me/export-trashlist : 정리후보를 DIM 트래시리스트(.txt)로 (compiler 재사용)
+- /me/cleanup       : 각 무기를 점수 프로필로 채점·분류 (정리 후보 판별)
+- /me/export-trashlist : 정리 후보를 DIM 트래시리스트(.txt)로 (compiler 재사용)
 """
 from __future__ import annotations
 
@@ -133,11 +133,11 @@ def me_demo_inventory(conn: sqlite3.Connection = Depends(get_conn)):
 def _score_inventory(conn, profile: Optional[dict], context: Optional[dict]) -> List[CleanupItem]:
     tok = repo.get_token(conn)
     membership = tok["membership_id"] if tok else None
-    base_map = repo.enhanced_base_map(conn)  # 강화 퍼크 → 기본 퍼크
+    base_map = repo.enhanced_base_map(conn)  # 강화 퍽 → 기본 퍽
     out: List[CleanupItem] = []
     for row in repo.get_inventory(conn, membership):
         plugs = json.loads(row["plug_hashes"] or "[]")
-        # 강화 퍼크는 기본 퍼크로 정규화(풀은 base 만 보관)
+        # 강화 퍽은 기본 퍽으로 정규화(풀은 base 만 보관)
         plugs = [base_map.get(p, p) for p in plugs]
         stats = json.loads(row["stats"] or "{}")
         w = repo.get_weapon(conn, row["item_hash"])
@@ -172,7 +172,7 @@ def me_cleanup(
     wishlist_rolls: List[dict] = Body(default=[]),
     conn: sqlite3.Connection = Depends(get_conn),
 ):
-    """창고 무기를 점수순(낮은 순=정리후보 우선)으로 채점."""
+    """창고 무기를 점수순(낮은 순=정리 후보 우선)으로 채점."""
     ctx = scoring.derive_context(conn, wishlist_rolls)
     return _score_inventory(conn, profile.model_dump() if profile else None, ctx)
 
@@ -183,7 +183,7 @@ def me_export_trashlist(
     wishlist_rolls: List[dict] = Body(default=[]),
     conn: sqlite3.Connection = Depends(get_conn),
 ) -> Dict[str, Any]:
-    """정리후보(trash) 롤들을 DIM 트래시리스트(.txt)로. compiler 재사용."""
+    """정리 후보(trash) 롤들을 DIM 트래시리스트(.txt)로. compiler 재사용."""
     ctx = scoring.derive_context(conn, wishlist_rolls)
     items = _score_inventory(conn, profile.model_dump() if profile else None, ctx)
     base_map = repo.enhanced_base_map(conn)
@@ -194,7 +194,7 @@ def me_export_trashlist(
         # 각 퍽을 별도 열에 넣어 AND 한 줄(item=-hash&perks=...)로 만든다
         cols = {idx: [p.plug_hash] for idx, p in enumerate(it.perks)}
         rolls.append(RollRequest(weapon_hash=it.item_hash, columns=cols, trash=True,
-                                 notes="정리후보", comment=it.name))
+                                 notes="정리 후보", comment=it.name))
     content = compile_wishlist(rolls, title="정리 리스트 (트래시)", base_map=base_map)
     line_count = sum(1 for ln in content.splitlines() if ln.startswith("dimwishlist:"))
     return {"filename": "cleanup-trashlist.txt", "content": content,

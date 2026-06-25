@@ -74,7 +74,7 @@ export function ListRail() {
       <div className="rail-list">
         {rolls.length === 0 && (
           <div className="rail-empty">
-            추가된 롤이 없습니다.<br />가운데에서 퍼크를 골라 추가하거나,<br />⤓ 로 외부 위시리스트(.txt)를 가져오세요.
+            추가된 롤이 없습니다.<br />가운데에서 퍽을 골라 추가하거나,<br />⤓ 로 외부 위시리스트(.txt)를 가져오세요.
           </div>
         )}
         {rolls.map((r) => {

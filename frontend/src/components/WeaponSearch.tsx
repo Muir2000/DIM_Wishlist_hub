@@ -342,7 +342,7 @@ export function WeaponSearch({
                   <span className="name">
                     {w.name}
                     {w.has_holofoil && (
-                      <span className="variant-badge" title="이 시즌에 홀로포일(외형만 다른 변형) 포함 — 동일 퍽롤">
+                      <span className="variant-badge" title="이 시즌에 홀로포일(외형만 다른 변형) 포함 — 동일 퍽 롤">
                         <span className="holo">✦ 홀로포일</span>
                       </span>
                     )}
@@ -366,7 +366,7 @@ export function WeaponSearch({
                       <span className="season-chip unknown">시즌 정보 없음</span>
                     )}
                     {w.season_count && w.season_count > 1 && (
-                      <span className="season-tag" title="이 무기는 여러 시즌(복각)으로 출시되었고 시즌마다 퍽풀이 다릅니다. 시즌별로 따로 표시됩니다.">
+                      <span className="season-tag" title="이 무기는 여러 시즌(복각)으로 출시되었고 시즌마다 퍽 풀이 다릅니다. 시즌별로 따로 표시됩니다.">
                         복각 {w.season_count}시즌
                       </span>
                     )}

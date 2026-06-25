@@ -4,11 +4,11 @@
   * GET /Platform/Destiny2/Manifest/ 로 version 과 jsonWorldComponentContentPaths 획득.
   * 저장된 version 과 같으면 스킵(--force 로 강제).
   * JSON 컴포넌트 방식으로 필요한 테이블만 다운로드(SQLite .content 의 signed-int 변환 회피):
-      - DestinyInventoryItemDefinition (ko)  : 무기/퍼크 이름·아이콘·소켓
+      - DestinyInventoryItemDefinition (ko)  : 무기/퍽 이름·아이콘·소켓
       - DestinyInventoryItemDefinition (en)  : 검색용 영문 이름 (선택)
-      - DestinyPlugSetDefinition       (ko)  : 랜덤 롤 퍼크 풀
+      - DestinyPlugSetDefinition       (ko)  : 랜덤 롤 퍽 풀
   * 무기 필터: itemType==3 또는 itemCategoryHashes 에 1 포함, tierType ∈ {5,6}, redacted 제외.
-  * 퍼크 열: sockets.socketCategories 중 socketCategoryHash==4241085061(WeaponPerks)의
+  * 퍽 열: sockets.socketCategories 중 socketCategoryHash==4241085061(WeaponPerks)의
     socketIndexes 를 순회 → randomizedPlugSetHash > reusablePlugSetHash > inline reusablePlugItems
     순으로 풀 해석 → DestinyPlugSetDefinition.reusablePlugItems(plugItemHash, currentlyCanRoll).
   * 소켓 인덱스를 하드코딩하지 않고 plug 의 plugCategoryIdentifier 로 열 종류 판별.
@@ -32,8 +32,8 @@ from app import config, db  # noqa: E402
 WEAPON_PERKS_CATEGORY = 4241085061  # DIM SocketCategoryHashes.WeaponPerks
 INTRINSIC_CATEGORY = 3956125808
 
-# 퍼크가 아닌 plug(트래커/마스터워크/셰이더/장식/메멘토/고유)는 열에서 제외.
-# plugCategoryIdentifier 에 아래 부분 문자열이 있으면 스킵. (실제 퍼크 카테고리는 barrels/
+# 퍽이 아닌 plug(트래커/마스터워크/셰이더/장식/메멘토/고유)는 열에서 제외.
+# plugCategoryIdentifier 에 아래 부분 문자열이 있으면 스킵. (실제 퍽 카테고리는 barrels/
 # magazines/frames/origins/sights 등으로 아래 단어를 포함하지 않음.)
 DENY_PLUGCAT = ("tracker", "shader", "skins", "ornament", "memento", "masterwork", "intrinsic")
 
@@ -221,7 +221,7 @@ def ingest(force: bool = False, limit: int = 0) -> None:
 
     print("[5/5] 정제 후 DB 기록 ...")
     cur = conn.cursor()
-    # 재적재: 기존 무기/퍼크/스탯/롤 비우기 (roll_stats 의 community 소스는 보존)
+    # 재적재: 기존 무기/퍽/스탯/롤 비우기 (roll_stats 의 community 소스는 보존)
     cur.execute("DELETE FROM weapon_perks")
     cur.execute("DELETE FROM weapons")
     cur.execute("DELETE FROM perks")

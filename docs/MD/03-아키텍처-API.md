@@ -19,7 +19,7 @@ DIM_Wishlist_hub/
 │  ├─ compiler.py        # 위시리스트 컴파일러 + 파서(parse_wishlist) — DIM 포맷, 조합 상한
 │  ├─ query.py           # DIM식 텍스트 쿼리 언어(토크나이저/파서/SQL 컴파일러/레지스트리)
 │  ├─ seasons.py         # watermark→시즌(번호/이름) 매핑 (refdata 로드)
-│  ├─ scoring.py         # 위시리스트 기반·퍽롤 중심 점수화
+│  ├─ scoring.py         # 위시리스트 기반·퍽 롤 중심 점수화
 │  ├─ main.py            # FastAPI 진입점 + CORS + 시작 시 DB 초기화
 │  ├─ config.py / db.py / repo.py / models.py / serialize.py / labels.py
 │  ├─ refdata/           # watermark-to-season.json, season-names.json
@@ -75,10 +75,10 @@ React SPA ─(/api, nginx 또는 Vite 프록시)─ FastAPI(검색/패싯/컴파
 | `GET /health` · `GET /status` | 헬스 · 데이터 소스/버전/무기 수/키 설정 여부(bool) |
 | `GET /weapons` | 무기 검색 — `q`, 다중값 CSV(`subtypes/tiers/damages/slots/ammo/frames/origins/seasons`), `perks`/`perk_exclude`/`perkname`, `stat_min/max`, **`query`**(텍스트 쿼리), `limit`. 시즌 단위 접기 |
 | `GET /weapons/count` | 현재 필터/검색 매칭 무기(시즌그룹) **총 건수** (LIMIT 무관) |
-| `GET /weapons/{hash}` | 무기 상세 + 열별 퍼크 풀(설명·스탯델타·인기도·배지·변형/시즌) |
+| `GET /weapons/{hash}` | 무기 상세 + 열별 퍽 풀(설명·스탯델타·인기도·배지·변형/시즌) |
 | `GET /filters` | **컨텍스트 인지 패싯** — 현재 검색/필터 기준 카테고리별 가용 값+갯수(자기 필터 제외) |
 | `GET /search/help` | 텍스트 쿼리 지원 토큰·예시(치트시트) |
-| `GET /perks?q=` · `GET /stat-defs` | 퍼크 자동완성 · 스탯 정의 |
+| `GET /perks?q=` · `GET /stat-defs` | 퍽 자동완성 · 스탯 정의 |
 | `POST /compile` · `POST /export` | 단일 롤 미리보기 · 완성 `.txt`(조합 폭발 시 400) |
 | `POST /import-wishlist` | 외부 DIM `.txt` → 롤 목록(제목/설명/집계). text 최대 8MB |
 | `GET /meta/top-weapons` · `GET /meta/weapon/{hash}/perk-popularity` | 인기 무기 · 열별 인기도 |
@@ -95,8 +95,8 @@ DIM `wishlist-file.ts` 정규식 호환:
 ```
 ^dimwishlist:item=(-?\d+)(?:&perks=)?([\d|,]*)(?:#notes:)?([^|]*)
 ```
-- 쉼표=AND · 다중퍼크→다중줄(카르테시안, 상한 2000) · 트래시=음수 해시 · 와일드카드=-69420 ·
-  강화퍼크 미출력 · 노트 `|` 제거 · LF/BOM 없음 · 변형 그룹 전개.
+- 쉼표=AND · 다중 퍽→다중줄(카르테시안, 상한 2000) · 트래시=음수 해시 · 와일드카드=-69420 ·
+  강화 퍽 미출력 · 노트 `|` 제거 · LF/BOM 없음 · 변형 그룹 전개.
 - `parse_wishlist`: 전체 파일 역파싱(헤더/주석/블록노트/멀티라인 역병합) — 가져오기용.
 - 테스트: `cd backend && python -m unittest discover -s tests` (74개: compiler 30 + query 21 + scoring 23).
 

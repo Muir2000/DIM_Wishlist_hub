@@ -1,4 +1,4 @@
-"""무기 검색 / 상세 (퍼크 풀 + 인기도 + 스탯) + 퍽/스탯 메타."""
+"""무기 검색 / 상세 (퍽 풀 + 인기도 + 스탯) + 퍽/스탯 메타."""
 from __future__ import annotations
 
 import sqlite3

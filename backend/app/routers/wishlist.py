@@ -59,7 +59,7 @@ def _slugify(text: str) -> str:
 
 @router.post("/compile", response_model=CompileOut)
 def compile_single(item: CompileRollIn, conn: sqlite3.Connection = Depends(get_conn)):
-    """단일 롤 -> DIM 줄 배열(다중퍼크 자동 전개 + 변형 무기 확장) 미리보기."""
+    """단일 롤 -> DIM 줄 배열(다중 퍽 자동 전개 + 변형 무기 확장) 미리보기."""
     base_map = repo.enhanced_base_map(conn)
     try:
         lines = compile_roll(_to_roll_request(item, conn), base_map=base_map)
@@ -85,7 +85,7 @@ def export_wishlist(payload: ExportIn, conn: sqlite3.Connection = Depends(get_co
     warning = None
     if source == "seed":
         warning = (
-            "현재 샘플(seed) 데이터로 동작 중입니다. 이 .txt 의 퍼크 해시는 합성값이라 "
+            "현재 샘플(seed) 데이터로 동작 중입니다. 이 .txt 의 퍽 해시는 합성값이라 "
             "DIM 에서 실제 매칭되지 않습니다. 실사용하려면 Bungie 매니페스트를 적재하세요."
         )
 
@@ -104,8 +104,8 @@ def export_wishlist(payload: ExportIn, conn: sqlite3.Connection = Depends(get_co
 def import_wishlist(payload: ImportIn, conn: sqlite3.Connection = Depends(get_conn)):
     """외부 DIM 위시리스트 .txt → 빌더 리스트에 넣을 수 있는 롤 목록으로 변환.
 
-    `// 무기이름` 블록의 여러 줄(카르테시안 전개)을 무기별로 합쳐(퍼크 합집합) 멀티선택 롤로 복원하고,
-    각 퍼크를 그 무기의 실제 열로 매핑한다. DB 에 없는 무기/와일드카드는 건너뛴다.
+    `// 무기이름` 블록의 여러 줄(카르테시안 전개)을 무기별로 합쳐(퍽 합집합) 멀티선택 롤로 복원하고,
+    각 퍽을 그 무기의 실제 열로 매핑한다. DB 에 없는 무기/와일드카드는 건너뛴다.
     """
     parsed = parse_wishlist(payload.text or "")
     base_map = repo.enhanced_base_map(conn)
@@ -126,7 +126,7 @@ def import_wishlist(payload: ImportIn, conn: sqlite3.Connection = Depends(get_co
             bp = base_map.get(ph, ph)            # 강화 → base 정규화
             ci = colmap.get(bp)
             if ci is None:
-                continue                          # 이 무기 풀에 없는 퍼크는 제외
+                continue                          # 이 무기 풀에 없는 퍽은 제외
             columns.setdefault(str(ci), [])
             if bp not in columns[str(ci)]:
                 columns[str(ci)].append(bp)

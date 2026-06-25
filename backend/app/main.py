@@ -55,7 +55,7 @@ def status(conn: sqlite3.Connection = Depends(get_conn)):
     note = None
     if source == "seed":
         note = (
-            "샘플 데이터로 구동 중. 실제 무기/퍼크를 쓰려면 `python -m ingest.manifest_ingest` 로 "
+            "샘플 데이터로 구동 중. 실제 무기/퍽을 쓰려면 `python -m ingest.manifest_ingest` 로 "
             "Bungie 매니페스트를 적재하세요."
         )
     return StatusOut(

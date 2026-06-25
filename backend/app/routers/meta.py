@@ -1,4 +1,4 @@
-"""커뮤니티 메타 대시보드 / 퍼크 인기도."""
+"""커뮤니티 메타 대시보드 / 퍽 인기도."""
 from __future__ import annotations
 
 import sqlite3
@@ -35,7 +35,7 @@ def top_weapons(
 
 @router.get("/weapon/{item_hash}/perk-popularity")
 def perk_popularity(item_hash: int, conn: sqlite3.Connection = Depends(get_conn)):
-    """열별 퍼크 인기도(인기도 막대용)."""
+    """열별 퍽 인기도(인기도 막대용)."""
     if not repo.get_weapon(conn, item_hash):
         raise HTTPException(status_code=404, detail="무기를 찾을 수 없습니다.")
     by_col = repo.perk_popularity_by_column(conn, item_hash)
