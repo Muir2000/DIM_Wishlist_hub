@@ -132,7 +132,7 @@ def _text_to_rolls(text: str):
 
 def _perk_name(conn, ph: int):
     r = conn.execute("SELECT name_ko, name_en FROM perks WHERE plug_hash = ?", (ph,)).fetchone()
-    return (r["name_ko"] or r["name_en"]) if r else None
+    return (r["name_en"] or r["name_ko"]) if r else None
 
 
 def _scope_label(conn, scope: str):
@@ -145,7 +145,7 @@ def _scope_label(conn, scope: str):
         return (r["frame"] if r and r["frame"] else f"프레임 {val}"), "frame"
     if kind == "weapon":
         r = conn.execute("SELECT name_ko, name_en FROM weapons WHERE item_hash = ?", (int(val),)).fetchone()
-        return ((r["name_ko"] or r["name_en"]) if r else val), "weapon"
+        return ((r["name_en"] or r["name_ko"]) if r else val), "weapon"
     return scope, "other"
 
 

@@ -1,5 +1,6 @@
 import type { WeaponDetail } from "../api";
 import { perkTier, PERK_TIER_COLOR } from "../api";
+import { columnKindLabel, displayName, useLanguage } from "../i18n";
 import { PerkIcon } from "./PerkIcon";
 import { STAT_LABEL } from "./StatsPanel";
 
@@ -16,12 +17,13 @@ export function PerkGrid({
   weapon: WeaponDetail;
   selection: Record<number, number[]>;
   onToggle: (col: number, hash: number) => void;
-  weights?: Record<number, number> | null; // plug_hash → 가중치 (활성 프로필+위시리스트)
-  scale?: number;                           // 배지 점수 = 가중치 * scale (desirability)
-  maxPossible?: number;                     // 동적 만점(열 비중 합) — 기여 환산용
-  columnWeights?: Record<string, number>;   // 열종류 → 비중
-  kinds?: Record<number, string>;           // plug_hash → 열종류
+  weights?: Record<number, number> | null;
+  scale?: number;
+  maxPossible?: number;
+  columnWeights?: Record<string, number>;
+  kinds?: Record<number, string>;
 }) {
+  const { language, t } = useLanguage();
   return (
     <div className="perk-columns">
       {weapon.columns.map((col) => {
@@ -29,17 +31,16 @@ export function PerkGrid({
         const picked = selection[col.index] ?? [];
         return (
           <div className="perk-column" key={col.index}>
-            <div className="col-label">{col.label}</div>
+            <div className="col-label">{columnKindLabel(col.kind, t, col.label)}</div>
             {col.perks.map((p) => {
               const isSel = picked.includes(p.plug_hash);
               const popPct = Math.round((p.popularity / maxPop) * 100);
-              const desc = p.description || p.description_en;
-              // 퍽 점수(가중치 환산) — 신호가 있을 때만, 0점은 표시 생략
+              const name = displayName(p, language);
+              const desc = language === "en" ? (p.description_en || p.description) : (p.description || p.description_en);
               const w = weights ? weights[p.plug_hash] : undefined;
               const points = w != null ? Math.round(w * scale) : null;
               const tier = points != null && points !== 0 ? perkTier(points) : null;
               const tierColor = tier ? PERK_TIER_COLOR[tier] : undefined;
-              // 이 무기 점수 기여(%) = 열 비중 * 가중치 * 100 / 동적 만점
               const kind = kinds ? kinds[p.plug_hash] : undefined;
               const cw = kind && columnWeights ? columnWeights[kind] : undefined;
               const contrib =
@@ -61,10 +62,10 @@ export function PerkGrid({
                     )}
                     <PerkIcon perk={p} kind={col.kind} />
                     <span className="perk-info">
-                      <span className="perk-name">{p.name}</span>
+                      <span className="perk-name">{name}</span>
                       <span className="perk-flags">
-                        {p.is_curated && <span className="flag curated">큐레이티드</span>}
-                        {!p.currently_can_roll && <span className="flag retired">단종</span>}
+                        {p.is_curated && <span className="flag curated">{t.labels.curated}</span>}
+                        {!p.currently_can_roll && <span className="flag retired">{t.labels.retired}</span>}
                         {p.popularity > 0 && <span className="flag pop">{p.popularity}</span>}
                       </span>
                       {p.stats && Object.keys(p.stats).length > 0 && (
@@ -80,7 +81,7 @@ export function PerkGrid({
                     {points != null && points !== 0 && (
                       <span
                         className={`perk-score tier-${tier}`}
-                        title={`이 퍽의 위시리스트 기반 점수 ${points > 0 ? "+" : ""}${points} (가중치 ${w})`}
+                        title={`${t.labels.perk} ${t.labels.score} ${points > 0 ? "+" : ""}${points} (weight ${w})`}
                       >
                         {points > 0 ? "+" : ""}{points}
                       </span>
@@ -88,14 +89,14 @@ export function PerkGrid({
                   </button>
                   {desc && (
                     <div className="perk-tooltip">
-                      <div className="perk-tooltip-name">{p.name}</div>
+                      <div className="perk-tooltip-name">{name}</div>
                       <div className="perk-tooltip-desc">{desc}</div>
                       {points != null && points !== 0 && (
                         <div className={`perk-tooltip-score tier-${tier}`}>
-                          퍽 선호도 {points > 0 ? "+" : ""}{points}
+                          {t.labels.perk} preference {points > 0 ? "+" : ""}{points}
                           {contrib != null && contrib !== 0 && (
                             <span className="perk-tooltip-contrib">
-                              · 이 무기 점수 기여 {contrib > 0 ? "+" : ""}{contrib}
+                              · weapon score contribution {contrib > 0 ? "+" : ""}{contrib}
                             </span>
                           )}
                         </div>

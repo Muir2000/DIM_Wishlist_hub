@@ -2,8 +2,17 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { api, ELEM_VAR } from "../api";
 import type { FacetOption, FilterFacets, PerkLite, SearchHelp, WeaponFilters, WeaponSummary } from "../api";
 import { STAT_LABEL } from "./StatsPanel";
+import {
+  ammoLabel,
+  damageLabel,
+  displayName,
+  formatTemplate,
+  slotLabel,
+  tierLabel,
+  useLanguage,
+  weaponTypeLabel,
+} from "../i18n";
 
-// 토글 가능한 값 집합 (선택/해제)
 function useToggleSet<T extends number | string>() {
   const [vals, setVals] = useState<T[]>([]);
   const toggle = (v: T) =>
@@ -12,7 +21,6 @@ function useToggleSet<T extends number | string>() {
   return { vals, toggle, clear, has: (v: T) => vals.includes(v) };
 }
 
-// 스탯 필터에 노출할 키(자주 쓰는 것 우선)
 const STAT_FILTER_KEYS = [
   "range", "stability", "handling", "reload", "impact", "aim_assist",
   "magazine", "rpm", "recoil", "zoom", "charge_time", "draw_time",
@@ -20,18 +28,13 @@ const STAT_FILTER_KEYS = [
 ];
 
 type PerkChip = PerkLite & { exclude: boolean };
+type SectionId = "perks" | "advanced" | "type" | "frame" | "tier" | "slot" | "ammo" | "season" | "origin" | "stats";
 
-// 패널 내부 재배치 가능한 섹션 순서 (퍽을 최상단으로). 속성은 패널 밖 고정 노출.
-const DEFAULT_ORDER = ["퍽", "고급검색", "종류", "프레임", "등급", "슬롯", "탄약", "시즌", "기원", "스탯"];
-const SECTION_TITLES: Record<string, string> = {
-  퍽: "퍽", 고급검색: "고급 검색", 종류: "종류", 프레임: "프레임", 등급: "등급",
-  슬롯: "슬롯", 탄약: "탄약", 시즌: "시즌", 기원: "기원 특성", 스탯: "스탯",
-};
+const DEFAULT_ORDER: SectionId[] = ["perks", "advanced", "type", "frame", "tier", "slot", "ammo", "season", "origin", "stats"];
 const ORDER_KEY = "dimhub.filterOrder";
-// 접기 영속화 (속성 포함 전체)
-const SECTION_IDS = ["속성", ...DEFAULT_ORDER];
+const SECTION_IDS = ["element", ...DEFAULT_ORDER];
 const COLLAPSE_KEY = "dimhub.filterCollapsed";
-const DEFAULT_COLLAPSED = ["고급검색", "시즌", "기원", "스탯"];
+const DEFAULT_COLLAPSED = ["advanced", "season", "origin", "stats"];
 
 function loadCollapsed(): Set<string> {
   try {
@@ -41,12 +44,31 @@ function loadCollapsed(): Set<string> {
   return new Set(DEFAULT_COLLAPSED);
 }
 
-function loadOrder(): string[] {
+function normalizeOrder(raw: string[]): SectionId[] {
+  const aliases: Record<string, SectionId> = {
+    "퍽": "perks",
+    "고급검색": "advanced",
+    "종류": "type",
+    "프레임": "frame",
+    "등급": "tier",
+    "슬롯": "slot",
+    "탄약": "ammo",
+    "시즌": "season",
+    "기원": "origin",
+    "스탯": "stats",
+  };
+  const known = raw
+    .map((id) => aliases[id] ?? id)
+    .filter((id): id is SectionId => DEFAULT_ORDER.includes(id as SectionId));
+  const unique = [...new Set(known)];
+  const missing = DEFAULT_ORDER.filter((id) => !unique.includes(id));
+  return unique.length ? [...unique, ...missing] : DEFAULT_ORDER;
+}
+
+function loadOrder(): SectionId[] {
   try {
     const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || "[]") as string[];
-    const known = saved.filter((id) => DEFAULT_ORDER.includes(id));
-    const missing = DEFAULT_ORDER.filter((id) => !known.includes(id));  // 새 섹션은 뒤에 추가
-    if (known.length) return [...known, ...missing];
+    return normalizeOrder(saved);
   } catch { /* ignore */ }
   return DEFAULT_ORDER;
 }
@@ -58,26 +80,25 @@ export function WeaponSearch({
   activeHash?: number;
   onSelect: (w: WeaponSummary) => void;
 }) {
+  const { language, t } = useLanguage();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<WeaponSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [facets, setFacets] = useState<FilterFacets | null>(null);
-  const [count, setCount] = useState(0);          // 현재 필터/검색에 매칭된 총 건수
+  const [count, setCount] = useState(0);
   const SEARCH_LIMIT = 60;
 
-  // 카테고리별 선택 집합
-  const elements = useToggleSet<string>();   // 속성
-  const types = useToggleSet<number>();      // 종류
-  const tiers = useToggleSet<number>();      // 등급
-  const slots = useToggleSet<string>();      // 슬롯
-  const ammo = useToggleSet<number>();       // 탄약
-  const frames = useToggleSet<string>();     // 프레임
-  const origins = useToggleSet<string>();    // 기원 특성
-  const seasons = useToggleSet<number>();    // 시즌
+  const elements = useToggleSet<string>();
+  const types = useToggleSet<number>();
+  const tiers = useToggleSet<number>();
+  const slots = useToggleSet<string>();
+  const ammo = useToggleSet<number>();
+  const frames = useToggleSet<string>();
+  const origins = useToggleSet<string>();
+  const seasons = useToggleSet<number>();
 
-  // 스탯 필터 {key: {min, max}} + 퍽 칩(보유/제외) + 고급 텍스트 쿼리
   const [statFilters, setStatFilters] = useState<Record<string, { min?: string; max?: string }>>({});
   const [perkChips, setPerkChips] = useState<PerkChip[]>([]);
   const [perkQ, setPerkQ] = useState("");
@@ -86,7 +107,6 @@ export function WeaponSearch({
   const [showHelp, setShowHelp] = useState(false);
   const [help, setHelp] = useState<SearchHelp | null>(null);
 
-  // 카테고리 접기 — 기본은 길거나 고급인 섹션을 접어 두고, 상태는 localStorage 에 보존.
   const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsed);
   useEffect(() => {
     try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsed])); } catch { /* ignore */ }
@@ -102,13 +122,12 @@ export function WeaponSearch({
   const allCollapsed = SECTION_IDS.every((id) => collapsed.has(id));
   const toggleAll = () => setCollapsed(allCollapsed ? new Set() : new Set(SECTION_IDS));
 
-  // 필터 배치(순서) — 설정 패널에서 변경, localStorage 보존.
-  const [order, setOrder] = useState<string[]>(loadOrder);
+  const [order, setOrder] = useState<SectionId[]>(loadOrder);
   const [showSettings, setShowSettings] = useState(false);
   useEffect(() => {
     try { localStorage.setItem(ORDER_KEY, JSON.stringify(order)); } catch { /* ignore */ }
   }, [order]);
-  const moveSection = (id: string, dir: -1 | 1) =>
+  const moveSection = (id: SectionId, dir: -1 | 1) =>
     setOrder((prev) => {
       const i = prev.indexOf(id), j = i + dir;
       if (i < 0 || j < 0 || j >= prev.length) return prev;
@@ -118,14 +137,10 @@ export function WeaponSearch({
     });
   const resetOrder = () => setOrder(DEFAULT_ORDER);
 
-  // 검색 자동완성 드롭다운 (플로팅) — 입력/포커스 시 열고, 외부클릭·선택·ESC 시 닫음
   const [searchOpen, setSearchOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement | null>(null);
-  const headerRef = useRef<HTMLDivElement | null>(null);  // 필터 팝오버 외부클릭 감지
-
+  const headerRef = useRef<HTMLDivElement | null>(null);
   const timer = useRef<number | undefined>(undefined);
-
-  // 패싯은 현재 검색/필터에 맞춰 매 검색마다 갱신(아래 검색 effect 에서 호출)
 
   useEffect(() => {
     if (!searchOpen) return;
@@ -141,7 +156,6 @@ export function WeaponSearch({
     };
   }, [searchOpen]);
 
-  // 필터 팝오버: 외부클릭/ESC 시 닫기
   useEffect(() => {
     if (!showFilters) return;
     const onDown = (e: MouseEvent) => {
@@ -193,13 +207,11 @@ export function WeaponSearch({
         statMax,
         query: advQuery,
       };
-      // 패싯도 현재 검색/필터 기준으로 갱신(컨텍스트 인지)
       api.filters(q, filters).then(setFacets).catch(() => {});
       api
         .searchWeapons(q, filters)
         .then((rows) => {
           setResults(rows);
-          // 결과가 상한 미만이면 그 길이가 곧 총 건수; 상한이면 별도 카운트 조회
           if (rows.length < SEARCH_LIMIT) {
             setCount(rows.length);
           } else {
@@ -218,10 +230,10 @@ export function WeaponSearch({
       setPerkSug([]);
       return;
     }
-    const t = window.setTimeout(() => {
+    const tmo = window.setTimeout(() => {
       api.searchPerks(perkQ).then(setPerkSug).catch(() => setPerkSug([]));
     }, 200);
-    return () => window.clearTimeout(t);
+    return () => window.clearTimeout(tmo);
   }, [perkQ]);
 
   function addPerk(p: PerkLite) {
@@ -251,7 +263,20 @@ export function WeaponSearch({
     setStatFilters({}); setPerkChips([]); setAdvQuery("");
   }
 
-  // 접이식 섹션 래퍼 (헤더 클릭으로 토글, 선택 수 배지)
+  function sectionTitle(id: string): string {
+    const s = t.search.sections;
+    return s[id as keyof typeof s] || id;
+  }
+
+  function facetLabel(id: string, option: FacetOption): string {
+    if (id === "element") return damageLabel(String(option.value), t, option.label);
+    if (id === "type") return weaponTypeLabel(Number(option.value), t, option.label);
+    if (id === "tier") return tierLabel(Number(option.value), t, option.label);
+    if (id === "slot") return slotLabel(String(option.value), t, option.label);
+    if (id === "ammo") return ammoLabel(Number(option.value), t, option.label);
+    return option.label;
+  }
+
   function Section({
     id, title, selectedCount = 0, headerExtra, children,
   }: {
@@ -275,7 +300,6 @@ export function WeaponSearch({
     );
   }
 
-  // 칩 그룹 렌더 헬퍼 (접이식)
   function ChipGroup({
     id, title, opts, has, toggle, accent, selectedCount = 0,
   }: {
@@ -294,16 +318,17 @@ export function WeaponSearch({
           {opts.map((o) => {
             const on = has(o.value);
             const color = accent?.(o);
+            const label = facetLabel(id, o);
             return (
               <button
                 key={String(o.value)}
                 className={`facet-chip ${on ? "on" : ""}`}
                 style={color ? ({ ["--chip-accent" as any]: color } as React.CSSProperties) : undefined}
                 onClick={() => toggle(o.value)}
-                title={`${o.label} · ${o.count}종`}
+                title={`${label} · ${o.count} ${t.search.countUnit}`}
               >
                 {color && <span className="facet-dot" />}
-                {o.label}
+                {label}
                 <span className="facet-count">{o.count}</span>
               </button>
             );
@@ -318,7 +343,7 @@ export function WeaponSearch({
       <div className="search-box" ref={boxRef}>
         <input
           className="search-input"
-          placeholder="무기 이름 검색 (한글/영문)…"
+          placeholder={t.search.placeholder}
           value={q}
           onChange={(e) => { setQ(e.target.value); setSearchOpen(true); }}
           onFocus={() => setSearchOpen(true)}
@@ -326,54 +351,59 @@ export function WeaponSearch({
         {searchOpen && (
           <div className="search-dropdown">
             <div className="dropdown-count">
-              {count.toLocaleString()}개 무기
-              {count > SEARCH_LIMIT ? ` · 상위 ${SEARCH_LIMIT}개 표시` : ""}
+              {count.toLocaleString()} {t.search.matchedWeapons}
+              {count > SEARCH_LIMIT ? ` · ${formatTemplate(t.search.topShown, { limit: SEARCH_LIMIT })}` : ""}
             </div>
-            {loading && results.length === 0 && <div className="hint" style={{ padding: "8px 10px" }}>검색 중…</div>}
-            {!loading && results.length === 0 && <div className="hint" style={{ padding: "8px 10px" }}>결과 없음.</div>}
-            {results.map((w) => (
-              <button
-                key={w.item_hash}
-                className={`weapon-row ${w.item_hash === activeHash ? "active" : ""}`}
-                onClick={() => { onSelect(w); setSearchOpen(false); }}
-              >
-                {w.icon ? <img className="icon" src={w.icon} alt="" /> : <div className="icon" />}
-                <div className="meta">
-                  <span className="name">
-                    {w.name}
-                    {w.has_holofoil && (
-                      <span className="variant-badge" title="이 시즌에 홀로포일(외형만 다른 변형) 포함 — 동일 퍽 롤">
-                        <span className="holo">✦ 홀로포일</span>
-                      </span>
-                    )}
-                    {w.has_adept && (
-                      <span className="variant-badge"><span className="adept">A 숙련자</span></span>
-                    )}
-                  </span>
-                  <span className="sub">
-                    {w.type_label}
-                    {w.damage_label ? ` · ${w.damage_label}` : ""}
-                    {w.tier_label ? ` · ${w.tier_label}` : ""}
-                  </span>
-                  <span className="season-line">
-                    {w.watermark && <img className="season-wm" src={w.watermark} alt="" />}
-                    {w.season_number ? (
-                      <span className="season-chip" title={`시즌 ${w.season_number}: ${w.season_name ?? ""}`}>
-                        S{w.season_number}
-                        {w.season_name ? <span className="season-nm"> · {w.season_name}</span> : null}
-                      </span>
-                    ) : (
-                      <span className="season-chip unknown">시즌 정보 없음</span>
-                    )}
-                    {w.season_count && w.season_count > 1 && (
-                      <span className="season-tag" title="이 무기는 여러 시즌(복각)으로 출시되었고 시즌마다 퍽 풀이 다릅니다. 시즌별로 따로 표시됩니다.">
-                        복각 {w.season_count}시즌
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </button>
-            ))}
+            {loading && results.length === 0 && <div className="hint" style={{ padding: "8px 10px" }}>{t.search.loading}</div>}
+            {!loading && results.length === 0 && <div className="hint" style={{ padding: "8px 10px" }}>{t.search.noResults}</div>}
+            {results.map((w) => {
+              const type = weaponTypeLabel(w.weapon_subtype, t, w.type_label);
+              const damage = damageLabel(w.default_damage_type, t, w.damage_label);
+              const rarity = tierLabel(w.tier, t, w.tier_label);
+              return (
+                <button
+                  key={w.item_hash}
+                  className={`weapon-row ${w.item_hash === activeHash ? "active" : ""}`}
+                  onClick={() => { onSelect(w); setSearchOpen(false); }}
+                >
+                  {w.icon ? <img className="icon" src={w.icon} alt="" /> : <div className="icon" />}
+                  <div className="meta">
+                    <span className="name">
+                      {displayName(w, language)}
+                      {w.has_holofoil && (
+                        <span className="variant-badge" title={`${t.labels.holofoil} - ${t.labels.samePerkRoll}`}>
+                          <span className="holo">✦ {t.labels.holofoil}</span>
+                        </span>
+                      )}
+                      {w.has_adept && (
+                        <span className="variant-badge"><span className="adept">A {t.labels.adept}</span></span>
+                      )}
+                    </span>
+                    <span className="sub">
+                      {type}
+                      {damage ? ` · ${damage}` : ""}
+                      {rarity ? ` · ${rarity}` : ""}
+                    </span>
+                    <span className="season-line">
+                      {w.watermark && <img className="season-wm" src={w.watermark} alt="" />}
+                      {w.season_number ? (
+                        <span className="season-chip" title={`${t.labels.season} ${w.season_number}: ${w.season_name ?? ""}`}>
+                          S{w.season_number}
+                          {w.season_name ? <span className="season-nm"> · {w.season_name}</span> : null}
+                        </span>
+                      ) : (
+                        <span className="season-chip unknown">{t.labels.noSeasonInfo}</span>
+                      )}
+                      {w.season_count && w.season_count > 1 && (
+                        <span className="season-tag" title={t.builder.seasonVariantTitle}>
+                          {t.labels.reissued} {w.season_count} {t.labels.season}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -382,36 +412,35 @@ export function WeaponSearch({
         className={`hs-filter-btn ${showFilters ? "on" : ""}`}
         onClick={() => setShowFilters((s) => !s)}
       >
-        ⚙ 필터 {activeFilterCount > 0 ? `(${activeFilterCount})` : ""} {showFilters ? "▲" : "▼"}
+        ⚙ {t.search.filters} {activeFilterCount > 0 ? `(${activeFilterCount})` : ""} {showFilters ? "▲" : "▼"}
       </button>
-      <span className="hs-count" title="현재 필터/검색에 매칭된 무기 수">
-        <b>{count.toLocaleString()}</b>개
+      <span className="hs-count" title={t.search.matchedWeapons}>
+        <b>{count.toLocaleString()}</b>
       </span>
 
       {showFilters && facets && (() => {
-        // 섹션 id → JSX (순서는 order 로 결정, 설정 패널에서 변경 가능)
-        const sectionMap: Record<string, React.ReactNode> = {
-          고급검색: (
-            <Section id="고급검색" title="고급 검색 (DIM식 텍스트 쿼리)"
+        const sectionMap: Record<SectionId, React.ReactNode> = {
+          advanced: (
+            <Section id="advanced" title={t.search.advanced}
               selectedCount={advQuery.trim() ? 1 : 0}
               headerExtra={
                 <button className="adv-help-toggle"
                         onClick={(e) => { e.stopPropagation(); setShowHelp((s) => !s); }}>
-                  {showHelp ? "도움말 닫기" : "도움말 ?"}
+                  {showHelp ? t.search.hideHelp : t.search.showHelp}
                 </button>
               }>
               <input
                 className="search-input adv-query"
-                placeholder={'예) is:핸드캐논 stat:range:>=50 -perkname:"무법자" season:>=23'}
+                placeholder={t.search.advancedPlaceholder}
                 value={advQuery}
                 onChange={(e) => setAdvQuery(e.target.value)}
               />
               {showHelp && (
                 <div className="adv-cheatsheet">
-                  <div className="adv-line"><b>연산자</b>: {help?.operators.join("  ·  ") ?? "and · or · not / - · ( )"}</div>
+                  <div className="adv-line"><b>{t.search.operators}</b>: {help?.operators.join("  ·  ") ?? "and · or · not / - · ( )"}</div>
                   {(help?.keywords ?? []).map((k) => (
                     <div className="adv-line" key={k.token}>
-                      <code>{k.token}</code> <span className="adv-ex">{k.예}</span>
+                      <code>{k.token}</code> <span className="adv-ex">{k["예"]}</span>
                     </div>
                   ))}
                   {(help?.examples ?? []).length > 0 && (
@@ -425,38 +454,38 @@ export function WeaponSearch({
               )}
             </Section>
           ),
-          종류: <ChipGroup id="종류" title="종류" opts={facets.types} has={types.has} toggle={types.toggle} selectedCount={types.vals.length} />,
-          프레임: <ChipGroup id="프레임" title="프레임(아키타입)" opts={facets.frames} has={frames.has} toggle={frames.toggle} selectedCount={frames.vals.length} />,
-          등급: <ChipGroup id="등급" title="등급" opts={facets.tiers} has={tiers.has} toggle={tiers.toggle} selectedCount={tiers.vals.length} />,
-          슬롯: <ChipGroup id="슬롯" title="슬롯" opts={facets.slots} has={slots.has} toggle={slots.toggle} selectedCount={slots.vals.length} />,
-          탄약: <ChipGroup id="탄약" title="탄약" opts={facets.ammo} has={ammo.has} toggle={ammo.toggle} selectedCount={ammo.vals.length} />,
-          시즌: <ChipGroup id="시즌" title="시즌(복각)" opts={facets.seasons} has={seasons.has} toggle={seasons.toggle} selectedCount={seasons.vals.length} />,
-          기원: <ChipGroup id="기원" title="기원 특성" opts={facets.origins} has={origins.has} toggle={origins.toggle} selectedCount={origins.vals.length} />,
-          스탯: (
-            <Section id="스탯" title="스탯 (≥ / ≤)" selectedCount={statFilterCount}>
+          type: <ChipGroup id="type" title={sectionTitle("type")} opts={facets.types} has={types.has} toggle={types.toggle} selectedCount={types.vals.length} />,
+          frame: <ChipGroup id="frame" title={sectionTitle("frame")} opts={facets.frames} has={frames.has} toggle={frames.toggle} selectedCount={frames.vals.length} />,
+          tier: <ChipGroup id="tier" title={sectionTitle("tier")} opts={facets.tiers} has={tiers.has} toggle={tiers.toggle} selectedCount={tiers.vals.length} />,
+          slot: <ChipGroup id="slot" title={sectionTitle("slot")} opts={facets.slots} has={slots.has} toggle={slots.toggle} selectedCount={slots.vals.length} />,
+          ammo: <ChipGroup id="ammo" title={sectionTitle("ammo")} opts={facets.ammo} has={ammo.has} toggle={ammo.toggle} selectedCount={ammo.vals.length} />,
+          season: <ChipGroup id="season" title={sectionTitle("season")} opts={facets.seasons} has={seasons.has} toggle={seasons.toggle} selectedCount={seasons.vals.length} />,
+          origin: <ChipGroup id="origin" title={sectionTitle("origin")} opts={facets.origins} has={origins.has} toggle={origins.toggle} selectedCount={origins.vals.length} />,
+          stats: (
+            <Section id="stats" title={t.search.statSection} selectedCount={statFilterCount}>
               <div className="stat-filter-grid">
                 {STAT_FILTER_KEYS.map((k) => (
                   <div className="stat-filter-row" key={k}>
                     <span className="stat-filter-name">{STAT_LABEL[k] || k}</span>
-                    <input type="number" className="stat-filter-input" placeholder="≥" min={0} max={100}
+                    <input type="number" className="stat-filter-input" placeholder=">=" min={0} max={100}
                            value={statFilters[k]?.min ?? ""} onChange={(e) => setStat(k, "min", e.target.value)} />
-                    <input type="number" className="stat-filter-input" placeholder="≤" min={0} max={100}
+                    <input type="number" className="stat-filter-input" placeholder="<=" min={0} max={100}
                            value={statFilters[k]?.max ?? ""} onChange={(e) => setStat(k, "max", e.target.value)} />
                   </div>
                 ))}
               </div>
             </Section>
           ),
-          퍽: (
-            <Section id="퍽" title="퍽 (클릭 시 보유↔제외 전환)" selectedCount={perkChips.length}>
+          perks: (
+            <Section id="perks" title={t.search.perkSection} selectedCount={perkChips.length}>
               <div className="filter-perk">
-                <input className="search-input" placeholder="퍽 이름으로 필터…"
+                <input className="search-input" placeholder={t.search.perkPlaceholder}
                        value={perkQ} onChange={(e) => setPerkQ(e.target.value)} />
                 {perkSug.length > 0 && (
                   <div className="perk-sug">
                     {perkSug.map((p) => (
                       <button key={p.plug_hash} className="perk-sug-item" onClick={() => addPerk(p)}>
-                        {p.name}
+                        {displayName(p, language)}
                       </button>
                     ))}
                   </div>
@@ -466,10 +495,10 @@ export function WeaponSearch({
                     {perkChips.map((p) => (
                       <span key={p.plug_hash} className={`chip on perk-mode ${p.exclude ? "exclude" : ""}`}>
                         <button className="perk-mode-toggle" onClick={() => togglePerkMode(p.plug_hash)}
-                                title={p.exclude ? "제외 중 — 클릭하면 보유로" : "보유 중 — 클릭하면 제외로"}>
+                                title={p.exclude ? t.search.excludedTitle : t.search.ownedTitle}>
                           {p.exclude ? "⊘" : "✓"}
                         </button>
-                        {p.name}
+                        {displayName(p, language)}
                         <button className="perk-remove" onClick={() => removePerk(p.plug_hash)}>✕</button>
                       </span>
                     ))}
@@ -482,7 +511,7 @@ export function WeaponSearch({
         return (
         <div className="filter-popover">
           <ChipGroup
-            id="속성" title="속성"
+            id="element" title={sectionTitle("element")}
             opts={facets.elements}
             has={elements.has}
             toggle={elements.toggle}
@@ -491,27 +520,27 @@ export function WeaponSearch({
           />
           <div className="filter-toolbar">
             <button className="filter-toolbar-btn" onClick={toggleAll}>
-              {allCollapsed ? "⊞ 모두 펼치기" : "⊟ 모두 접기"}
+              {allCollapsed ? `⊞ ${t.search.expandAll}` : `⊟ ${t.search.collapseAll}`}
             </button>
             <button className={`filter-toolbar-btn ${showSettings ? "on" : ""}`} onClick={() => setShowSettings((s) => !s)}>
-              ⚙ 배치
+              ⚙ {t.search.filterLayout}
             </button>
             {activeFilterCount > 0 && (
-              <button className="filter-toolbar-btn" onClick={clearAll}>필터 전체 해제 ({activeFilterCount})</button>
+              <button className="filter-toolbar-btn" onClick={clearAll}>{t.search.clearFilters} ({activeFilterCount})</button>
             )}
           </div>
 
           {showSettings && (
             <div className="filter-settings">
-              <div className="facet-title">필터 배치 — 위/아래로 순서 변경 (자동 저장)</div>
+              <div className="facet-title">{t.search.layoutHint}</div>
               {order.map((id, i) => (
                 <div className="settings-row" key={id}>
-                  <span className="settings-name">{SECTION_TITLES[id] ?? id}</span>
-                  <button className="settings-move" disabled={i === 0} onClick={() => moveSection(id, -1)} title="위로">▲</button>
-                  <button className="settings-move" disabled={i === order.length - 1} onClick={() => moveSection(id, 1)} title="아래로">▼</button>
+                  <span className="settings-name">{sectionTitle(id)}</span>
+                  <button className="settings-move" disabled={i === 0} onClick={() => moveSection(id, -1)} title={t.search.moveUp}>▲</button>
+                  <button className="settings-move" disabled={i === order.length - 1} onClick={() => moveSection(id, 1)} title={t.search.moveDown}>▼</button>
                 </div>
               ))}
-              <button className="filter-toolbar-btn" style={{ marginTop: 6 }} onClick={resetOrder}>기본 순서로</button>
+              <button className="filter-toolbar-btn" style={{ marginTop: 6 }} onClick={resetOrder}>{t.search.resetOrder}</button>
             </div>
           )}
 
@@ -520,7 +549,7 @@ export function WeaponSearch({
         );
       })()}
 
-      {err && <div className="hs-error">오류: {err}</div>}
+      {err && <div className="hs-error">{t.search.error}: {err}</div>}
     </div>
   );
 }

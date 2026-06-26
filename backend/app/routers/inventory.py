@@ -152,13 +152,21 @@ def _score_inventory(conn, profile: Optional[dict], context: Optional[dict]) -> 
         perk_names = []
         for ph in roll_perks:
             pr = conn.execute("SELECT name_ko, name_en FROM perks WHERE plug_hash = ?", (ph,)).fetchone()
-            perk_names.append(InventoryPerk(plug_hash=ph, name=(pr["name_ko"] or pr["name_en"]) if pr else None))
+            perk_names.append(InventoryPerk(
+                plug_hash=ph,
+                name=(pr["name_ko"] or pr["name_en"]) if pr else None,
+                name_en=pr["name_en"] if pr else None,
+            ))
         out.append(CleanupItem(
             item_instance_id=row["item_instance_id"], item_hash=row["item_hash"],
             name=w["name_ko"] or w["name_en"] or str(row["item_hash"]),
+            name_en=w["name_en"],
             icon=serialize.icon_url(w["icon"]),
+            weapon_subtype=w["weapon_subtype"],
             type_label=labels.weapon_type_label(w["weapon_subtype"]),
+            default_damage_type=w["default_damage_type"],
             damage_label=labels.DAMAGE_KO.get(w["default_damage_type"]),
+            tier=w["tier"],
             power=row["power"], perks=perk_names, stats=stats,
             score=res["score"], classification=res["classification"],
         ))

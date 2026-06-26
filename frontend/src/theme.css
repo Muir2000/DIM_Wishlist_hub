@@ -141,6 +141,16 @@ a { color: var(--primary-hover); }
   font-family: var(--font-display); font-weight: 600; font-size: 13px;
   text-transform: uppercase; letter-spacing: 0.06em; color: var(--primary);
 }
+.language-select {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; color: var(--text-faint); text-transform: uppercase;
+}
+.language-select select {
+  height: 28px; min-width: 92px; padding: 0 8px;
+  border-radius: var(--radius-sm); border: 1px solid var(--border-strong);
+  background: var(--surface-2); color: var(--text-primary);
+  font-family: var(--font-display); font-size: 12px; text-transform: uppercase;
+}
 .status-chip {
   display: inline-flex; align-items: center; gap: 8px; font-size: 12px;
   padding: 5px 11px; border-radius: var(--radius-pill);

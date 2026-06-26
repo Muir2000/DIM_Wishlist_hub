@@ -99,7 +99,9 @@ class ImportedRoll(BaseModel):
     """가져온 롤 — 프론트 store.addRoll 과 동일 형태(빌더 리스트에 바로 추가)."""
     input: CompileRollIn
     weapon_name: str
+    weapon_name_en: Optional[str] = None
     perk_labels: List[str] = Field(default_factory=list)
+    perk_labels_en: List[str] = Field(default_factory=list)
     lines: List[str] = Field(default_factory=list)
     type_label: Optional[str] = None
     damage_type: Optional[str] = None
@@ -193,15 +195,20 @@ class DeriveWeightsResult(BaseModel):
 class InventoryPerk(BaseModel):
     plug_hash: int
     name: Optional[str] = None
+    name_en: Optional[str] = None
 
 
 class CleanupItem(BaseModel):
     item_instance_id: str
     item_hash: int
     name: str
+    name_en: Optional[str] = None
     icon: Optional[str] = None
+    weapon_subtype: Optional[int] = None
     type_label: Optional[str] = None
+    default_damage_type: Optional[str] = None
     damage_label: Optional[str] = None
+    tier: Optional[int] = None
     power: Optional[int] = None
     perks: List[InventoryPerk] = Field(default_factory=list)
     stats: Dict[str, float] = Field(default_factory=dict)

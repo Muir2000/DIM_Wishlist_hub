@@ -34,7 +34,7 @@ let _id = 1;
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
   const [rolls, setRolls] = useState<SavedRoll[]>([]);
-  const [title, setTitle] = useState("내 위시리스트");
+  const [title, setTitle] = useState("My wishlist");
   const [description, setDescription] = useState("");
   const [activeProfile, setActiveProfile] = useState<ScoringProfile | null>(null);
 

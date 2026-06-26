@@ -7,25 +7,23 @@ import { ListRail } from "./components/ListRail";
 import { MetaDashboard } from "./components/MetaDashboard";
 import { ScoringProfileEditor } from "./components/ScoringProfileEditor";
 import { InventoryCleanup } from "./components/InventoryCleanup";
+import { LANGUAGES, useLanguage, type LanguageCode } from "./i18n";
 
-const TABS: Array<[string, string]> = [
-  ["builder", "빌더"],
-  ["scoring", "점수 기준"],
-  ["vault", "내 창고"],
-  ["meta", "메타 대시보드"],
-];
+type TabKey = "builder" | "meta" | "scoring" | "vault";
+
+const TABS: TabKey[] = ["builder", "scoring", "vault", "meta"];
 
 export default function App() {
+  const { language, setLanguage, t } = useLanguage();
   const [status, setStatus] = useState<Status | null>(null);
-  const [tab, setTab] = useState<"builder" | "meta" | "scoring" | "vault">("builder");
+  const [tab, setTab] = useState<TabKey>("builder");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [picked, setPicked] = useState<WeaponSummary | null>(null);  // 헤더 검색 → 빌더 뷰어
+  const [picked, setPicked] = useState<WeaponSummary | null>(null);
 
   useEffect(() => {
     api.status().then(setStatus).catch(() => setStatus(null));
   }, []);
 
-  // ESC 로 드로어 닫기
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuOpen(false); };
@@ -34,7 +32,7 @@ export default function App() {
   }, [menuOpen]);
 
   const isSeed = status?.data_source === "seed";
-  const activeLabel = TABS.find(([k]) => k === tab)?.[1] ?? "";
+  const activeLabel = t.app.tabs[tab];
 
   return (
     <div className="app-shell">
@@ -42,17 +40,28 @@ export default function App() {
         <div className="logo">
           <span className="gem" />
           <span className="wordmark">
-            DIM <span className="accent">위시리스트</span> 허브
+            {t.app.titlePrefix} <span className="accent">{t.app.titleAccent}</span> {t.app.titleSuffix}
           </span>
         </div>
         {tab === "builder" && (
           <WeaponSearch activeHash={picked?.item_hash} onSelect={setPicked} />
         )}
         <div className="header-right">
+          <label className="language-select" title={t.language.label}>
+            <span>{t.language.label}</span>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as LanguageCode)}
+            >
+              {LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code}>{lang.label}</option>
+              ))}
+            </select>
+          </label>
           <span className="header-active-tab">{activeLabel}</span>
           <button
             className={`hamburger ${menuOpen ? "open" : ""}`}
-            aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            aria-label={menuOpen ? t.app.closeMenu : t.app.openMenu}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((o) => !o)}
           >
@@ -61,25 +70,24 @@ export default function App() {
         </div>
       </header>
 
-      {/* 우측 드로어 (오프캔버스) + 딤 스크림 */}
       <div className={`drawer-scrim ${menuOpen ? "open" : ""}`} onClick={() => setMenuOpen(false)} />
       <aside className={`drawer ${menuOpen ? "open" : ""}`} aria-hidden={!menuOpen}>
-        <div className="drawer-title">메뉴</div>
+        <div className="drawer-title">{t.app.menu}</div>
         <nav className="drawer-nav">
-          {TABS.map(([k, label]) => (
+          {TABS.map((key) => (
             <button
-              key={k}
-              className={`drawer-tab ${tab === k ? "active" : ""}`}
-              onClick={() => { setTab(k as typeof tab); setMenuOpen(false); }}
+              key={key}
+              className={`drawer-tab ${tab === key ? "active" : ""}`}
+              onClick={() => { setTab(key); setMenuOpen(false); }}
             >
-              {label}
+              {t.app.tabs[key]}
             </button>
           ))}
         </nav>
         {status && (
           <div className="drawer-status" title={status.note ?? ""}>
             <span className={`status-dot ${isSeed ? "seed" : ""}`} />
-            {isSeed ? "샘플 데이터" : "매니페스트"} · 무기 {status.weapons}
+            {isSeed ? t.app.sampleData : t.app.manifest} · {status.weapons} {t.app.weapons}
           </div>
         )}
       </aside>

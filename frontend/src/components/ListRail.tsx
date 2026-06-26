@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
 import { api, ELEM_VAR, RARITY_VAR } from "../api";
 import type { ImportResult } from "../api";
+import { formatTemplate, useLanguage } from "../i18n";
 import { useWishlist } from "../store";
 
-// 좌측 "내 리스트" 레일 — 위시리스트에 추가된 롤 목록 + 외부 위시리스트 가져오기.
 export function ListRail() {
+  const { language, t } = useLanguage();
   const { rolls, addRolls, removeRoll, clear, setTitle, setDescription } = useWishlist();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
@@ -20,8 +21,8 @@ export function ListRail() {
     if (replace) clear();
     addRolls(res.rolls.map((ir) => ({
       input: ir.input,
-      weaponName: ir.weapon_name,
-      perkLabels: ir.perk_labels,
+      weaponName: language === "en" ? (ir.weapon_name_en || ir.weapon_name) : ir.weapon_name,
+      perkLabels: language === "en" ? (ir.perk_labels_en?.length ? ir.perk_labels_en : ir.perk_labels) : ir.perk_labels,
       lines: ir.lines,
       typeLabel: ir.type_label,
       damageType: ir.damage_type,
@@ -30,32 +31,32 @@ export function ListRail() {
     if (res.title) setTitle(res.title);
     if (res.description) setDescription(res.description);
     const extra = [
-      res.unknown_weapons ? `미보유 무기 ${res.unknown_weapons}` : "",
-      res.wildcard ? `와일드카드 ${res.wildcard}` : "",
-      res.skipped_lines ? `실패 ${res.skipped_lines}줄` : "",
+      res.unknown_weapons ? `${t.list.missingWeapons} ${res.unknown_weapons}` : "",
+      res.wildcard ? `${t.list.wildcard} ${res.wildcard}` : "",
+      res.skipped_lines ? `${t.list.skippedLines} ${res.skipped_lines}` : "",
     ].filter(Boolean).join(" · ");
-    setStatus(`가져옴 ${res.imported}개${extra ? ` (제외: ${extra})` : ""}`);
+    setStatus(`${formatTemplate(t.list.imported, { count: res.imported })}${extra ? ` (${t.list.excluded}: ${extra})` : ""}`);
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
+    const file = e.target.files?.[0];
     e.target.value = "";
-    if (!f) return;
+    if (!file) return;
     setBusy(true);
-    setStatus("가져오는 중…");
+    setStatus(t.list.importing);
     try {
-      const text = await f.text();
+      const text = await file.text();
       const res = await api.importWishlist(text);
       if (res.imported === 0) {
-        setStatus(`가져올 롤이 없습니다 (실패 ${res.skipped_lines}줄, 미보유 ${res.unknown_weapons})`);
+        setStatus(`${t.list.importNone} (${t.list.skippedLines} ${res.skipped_lines}, ${t.list.missingWeapons} ${res.unknown_weapons})`);
         return;
       }
       const replace = rolls.length > 0
-        ? window.confirm(`${res.imported}개 롤을 가져옵니다.\n확인=기존 리스트 비우고 교체 / 취소=기존에 추가`)
+        ? window.confirm(formatTemplate(t.list.replaceConfirm, { count: res.imported }))
         : true;
       applyImport(res, replace);
     } catch (err) {
-      setStatus(`가져오기 실패: ${err instanceof Error ? err.message : String(err)}`);
+      setStatus(`${t.list.importFailed}: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setBusy(false);
     }
@@ -64,25 +65,23 @@ export function ListRail() {
   return (
     <aside className="list-rail">
       <div className="rail-head">
-        <span className="rail-title">내 리스트</span>
-        <button className="rail-add" title="외부 위시리스트(.txt) 가져오기" disabled={busy}
+        <span className="rail-title">{t.list.title}</span>
+        <button className="rail-add" title={t.list.importWishlist} disabled={busy}
                 onClick={() => fileRef.current?.click()}>⤓</button>
-        <button className="rail-add" title="무기 추가" onClick={focusSearch}>+</button>
+        <button className="rail-add" title={t.list.addWeapon} onClick={focusSearch}>+</button>
         <input ref={fileRef} type="file" accept=".txt,text/plain" hidden onChange={onFile} />
       </div>
       {status && <div className="rail-status">{status}</div>}
       <div className="rail-list">
         {rolls.length === 0 && (
-          <div className="rail-empty">
-            추가된 롤이 없습니다.<br />가운데에서 퍽을 골라 추가하거나,<br />⤓ 로 외부 위시리스트(.txt)를 가져오세요.
-          </div>
+          <div className="rail-empty" dangerouslySetInnerHTML={{ __html: t.list.empty }} />
         )}
-        {rolls.map((r) => {
-          const elemVar = r.damageType ? ELEM_VAR[r.damageType] : undefined;
-          const rarityVar = r.tier ? RARITY_VAR[r.tier] : undefined;
-          const cls = r.input.wildcard ? "wild" : r.input.trash ? "trash" : "";
+        {rolls.map((roll) => {
+          const elemVar = roll.damageType ? ELEM_VAR[roll.damageType] : undefined;
+          const rarityVar = roll.tier ? RARITY_VAR[roll.tier] : undefined;
+          const cls = roll.input.wildcard ? "wild" : roll.input.trash ? "trash" : "";
           return (
-            <div key={r.id} className={`rail-item ${cls}`}>
+            <div key={roll.id} className={`rail-item ${cls}`}>
               <span
                 className="w-thumb"
                 style={{
@@ -95,23 +94,25 @@ export function ListRail() {
               </span>
               <span style={{ minWidth: 0, flex: 1 }}>
                 <span className="r-name">
-                  {r.input.wildcard ? "✷ 아무 무기" : r.weaponName}
-                  {r.input.trash ? " 👎" : ""}
+                  {roll.input.wildcard ? `✷ ${t.labels.anyWeapon}` : roll.weaponName}
+                  {roll.input.trash ? " 👎" : ""}
                 </span>
                 <span className="r-sub">
-                  {r.typeLabel || ""}
-                  {r.lines.length > 1 ? ` · ${r.lines.length}줄` : ""}
-                  {r.input.tags.length ? ` · ${r.input.tags.join(",")}` : ""}
+                  {roll.typeLabel || ""}
+                  {roll.lines.length > 1 ? ` · ${roll.lines.length} ${t.list.lines}` : ""}
+                  {roll.input.tags.length ? ` · ${roll.input.tags.join(",")}` : ""}
                 </span>
               </span>
-              <button className="x" title="삭제" onClick={() => removeRoll(r.id)}>✕</button>
+              <button className="x" title={t.list.delete} onClick={() => removeRoll(roll.id)}>✕</button>
             </div>
           );
         })}
       </div>
       {rolls.length > 0 && (
         <div className="rail-foot">
-          <button className="btn ghost sm" style={{ width: "100%" }} onClick={clear}>전체 비우기 ({rolls.length})</button>
+          <button className="btn ghost sm" style={{ width: "100%" }} onClick={clear}>
+            {t.list.clearAll} ({rolls.length})
+          </button>
         </div>
       )}
     </aside>
