@@ -110,7 +110,9 @@ export interface DeriveResult {
 export interface ImportedRoll {
   input: RollInput;
   weapon_name: string;
+  weapon_name_en?: string | null;
   perk_labels: string[];
+  perk_labels_en?: string[];
   lines: string[];
   type_label?: string | null;
   damage_type?: string | null;
@@ -223,8 +225,11 @@ export interface TopWeapon {
   name: string;
   name_en?: string | null;
   icon?: string | null;
+  weapon_subtype?: number | null;
   type_label?: string | null;
+  default_damage_type?: string | null;
   damage_label?: string | null;
+  tier?: number | null;
   tier_label?: string | null;
   total: number;
 }
@@ -329,11 +334,15 @@ export interface CleanupItem {
   item_instance_id: string;
   item_hash: number;
   name: string;
+  name_en?: string | null;
   icon?: string | null;
+  weapon_subtype?: number | null;
   type_label?: string | null;
+  default_damage_type?: string | null;
   damage_label?: string | null;
+  tier?: number | null;
   power?: number | null;
-  perks: Array<{ plug_hash: number; name?: string | null }>;
+  perks: Array<{ plug_hash: number; name?: string | null; name_en?: string | null }>;
   stats: Record<string, number>;
   score?: number | null;
   classification?: string | null;
@@ -351,7 +360,7 @@ export const inventoryApi = {
     ),
 };
 
-export const CLASS_LABEL: Record<string, string> = { god: "갓롤", viable: "쓸만함", trash: "정리 후보" };
+export const CLASS_LABEL: Record<string, string> = { god: "God roll", viable: "Viable", trash: "Cleanup" };
 export const CLASS_COLOR: Record<string, string> = {
   god: "var(--primary)",
   viable: "var(--community)",

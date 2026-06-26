@@ -25,8 +25,11 @@ def top_weapons(
             "name": r["name_ko"] or r["name_en"],
             "name_en": r["name_en"],
             "icon": serialize.icon_url(r["icon"]),
+            "weapon_subtype": r["weapon_subtype"],
             "type_label": labels.weapon_type_label(r["weapon_subtype"]),
+            "default_damage_type": r["default_damage_type"],
             "damage_label": labels.DAMAGE_KO.get(r["default_damage_type"]),
+            "tier": r["tier"],
             "tier_label": labels.TIER_KO.get(r["tier"]),
             "total": r["total"],
         })

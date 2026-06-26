@@ -286,20 +286,20 @@ def compile_query(text: str) -> SQL:
 
 # 프론트 치트시트/도움말
 HELP = {
-    "operators": ["and (암묵)", "or", "not / -", "( )"],
+    "operators": ["and (implicit)", "or", "not / -", "( )"],
     "keywords": [
-        {"token": "is:<종류/속성/슬롯/등급/탄약>", "예": "is:핸드캐논, is:solar, is:exotic, is:adept"},
-        {"token": "perkname:\"이름\"", "예": 'perkname:"무법자"'},
-        {"token": "stat:<키>:<조건>", "예": "stat:range:>=50, stat:rpm:180, stat:handling:40-60"},
-        {"token": "season:<조건>", "예": "season:5, season:>=20"},
-        {"token": "frame:<텍스트>", "예": "frame:정밀"},
-        {"token": "origin:<텍스트>", "예": "origin:대장간"},
-        {"token": "name:<텍스트> / 맨텍스트", "예": "name:용광로"},
+        {"token": "is:<type/element/slot/rarity/ammo>", "예": "is:handcannon, is:solar, is:exotic, is:adept"},
+        {"token": 'perkname:"name"', "예": 'perkname:"Outlaw"'},
+        {"token": "stat:<key>:<condition>", "예": "stat:range:>=50, stat:rpm:180, stat:handling:40-60"},
+        {"token": "season:<condition>", "예": "season:5, season:>=20"},
+        {"token": "frame:<text>", "예": "frame:precision"},
+        {"token": "origin:<text>", "예": "origin:forge"},
+        {"token": "name:<text> / plain text", "예": "name:blast furnace"},
     ],
     "examples": [
-        'is:핸드캐논 is:solar stat:range:>=50',
-        'is:파동소총 -perkname:"무법자" season:>=23',
+        'is:handcannon is:solar stat:range:>=50',
+        'is:pulserifle -perkname:"Outlaw" season:>=23',
         '(is:arc or is:void) is:exotic',
-        'frame:정밀 stat:handling:>=45',
+        'frame:precision stat:handling:>=45',
     ],
 }

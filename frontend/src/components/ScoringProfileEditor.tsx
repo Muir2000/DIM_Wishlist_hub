@@ -1,20 +1,18 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { DeriveContext, DeriveResult, ScoringProfile } from "../api";
+import { useLanguage, weaponTypeLabel } from "../i18n";
 import { useWishlist } from "../store";
 import { STAT_LABEL } from "./StatsPanel";
 
 const STAT_KEYS = ["handling", "range", "stability", "reload", "aim_assist", "impact", "recoil", "zoom"];
-const KIND_LABEL: Record<string, string> = { type: "종류", frame: "프레임", weapon: "무기" };
 const DEFAULT_SCOPE_BLEND = { weapon: 0.6, frame: 0.25, type: 0.15 };
 const DEFAULT_COLUMN_WEIGHTS = { trait: 1.0, barrel: 0.35, magazine: 0.35, origin: 0.2, intrinsic: 0.0 };
-const SCOPE_LABEL: Record<string, string> = { weapon: "동일 무기", frame: "동일 프레임", type: "동일 종류" };
-const COL_LABEL: Record<string, string> = { trait: "특성", barrel: "총열", magazine: "탄창", origin: "기원", intrinsic: "고유" };
 
 function blankProfile(): ScoringProfile {
   return {
     id: null,
-    name: "새 점수 기준",
+    name: "New scoring profile",
     description: "",
     tags: [],
     stat_weights: {},
@@ -31,6 +29,7 @@ function blankProfile(): ScoringProfile {
 }
 
 export function ScoringProfileEditor() {
+  const { t } = useLanguage();
   const { activeProfile, setActiveProfile, rolls } = useWishlist();
   const [profiles, setProfiles] = useState<ScoringProfile[]>([]);
   const [draft, setDraft] = useState<ScoringProfile>(activeProfile ?? blankProfile());
@@ -45,48 +44,56 @@ export function ScoringProfileEditor() {
     api.listProfiles().then(setProfiles).catch(() => {});
   }
 
+  function contextLabel(context: DeriveContext): string {
+    if (context.kind === "type") {
+      const subtype = Number(context.scope.split(":")[1]);
+      return weaponTypeLabel(subtype, t, context.label);
+    }
+    return context.label;
+  }
+
   function applyDerived(res: DeriveResult) {
     const scopeCount = Object.keys(res.context_weights).length;
     if (!scopeCount) {
-      setStatus(`위시리스트에서 컨텍스트를 찾지 못했습니다 (롤 ${res.rolls_parsed}개). 무기별 롤이 필요합니다.`);
+      setStatus(`${t.scoring.noContext} (${t.wishlist.rolls} ${res.rolls_parsed}).`);
       return;
     }
-    setDraft((d) => ({
-      ...d,
+    setDraft((current) => ({
+      ...current,
       context_weights: res.context_weights,
       context_synergies: res.context_synergies,
     }));
     setContexts(res.contexts);
     const combos = res.contexts.reduce((n, c) => n + c.combos.length, 0);
-    setStatus(`위시리스트 학습 완료 — 컨텍스트 ${scopeCount}개, 조합 ${combos}개 (롤 ${res.rolls_parsed}개).`);
+    setStatus(`${t.scoring.learned} - ${scopeCount} ${t.scoring.contextCount}, ${combos} ${t.scoring.combo.toLowerCase()}s (${res.rolls_parsed} ${t.wishlist.rolls}).`);
   }
 
   async function useCurrentWishlist() {
     if (!rolls.length) {
-      setStatus("현재 위시리스트가 비어 있습니다. '빌더'에서 롤을 추가하세요.");
+      setStatus(t.scoring.noWishlist);
       return;
     }
     applyDerived(await api.deriveWeights({ rolls: rolls.map((r) => r.input) }));
   }
 
   function uploadWishlist(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    f.text().then(async (text) => applyDerived(await api.deriveWeights({ text })));
+    const file = e.target.files?.[0];
+    if (!file) return;
+    file.text().then(async (text) => applyDerived(await api.deriveWeights({ text })));
     e.target.value = "";
   }
 
   function clearContexts() {
-    setDraft((d) => ({ ...d, context_weights: {}, context_synergies: {} }));
+    setDraft((current) => ({ ...current, context_weights: {}, context_synergies: {} }));
     setContexts([]);
   }
 
-  function setStat(k: string, v: number) {
-    setDraft((d) => {
-      const sw = { ...d.stat_weights };
-      if (v === 0) delete sw[k];
-      else sw[k] = v;
-      return { ...d, stat_weights: sw };
+  function setStat(key: string, value: number) {
+    setDraft((current) => {
+      const statWeights = { ...current.stat_weights };
+      if (value === 0) delete statWeights[key];
+      else statWeights[key] = value;
+      return { ...current, stat_weights: statWeights };
     });
   }
 
@@ -95,7 +102,7 @@ export function ScoringProfileEditor() {
     setDraft(saved);
     setActiveProfile(saved);
     refresh();
-    setStatus(`저장됨: ${saved.name}`);
+    setStatus(`${t.scoring.saved}: ${saved.name}`);
   }
 
   async function del(id?: string | null) {
@@ -117,16 +124,16 @@ export function ScoringProfileEditor() {
   }
 
   function importJson(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    f.text().then((t) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    file.text().then((content) => {
       try {
-        const p = JSON.parse(t) as ScoringProfile;
-        p.id = null; // 가져오면 새 프로필로 저장
-        setDraft({ ...blankProfile(), ...p, id: null });
-        setStatus(`가져옴: ${p.name}`);
+        const profile = JSON.parse(content) as ScoringProfile;
+        profile.id = null;
+        setDraft({ ...blankProfile(), ...profile, id: null });
+        setStatus(`${t.scoring.imported}: ${profile.name}`);
       } catch {
-        setStatus("JSON 파싱 실패");
+        setStatus(t.scoring.jsonParseFailed);
       }
     });
   }
@@ -135,64 +142,61 @@ export function ScoringProfileEditor() {
     <div className="layout">
       <div>
         <div className="panel">
-          <div className="panel-title">점수 기준 편집</div>
+          <div className="panel-title">{t.scoring.profileEditor}</div>
           <input
             className="text-input"
             value={draft.name}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            placeholder="프로필 이름"
+            placeholder={t.scoring.profileName}
           />
 
-          <div className="panel-title" style={{ marginTop: 16 }}>스탯 가중치 (0 = 미사용)</div>
-          {STAT_KEYS.map((k) => (
-            <div className="weight-row" key={k}>
-              <span className="weight-name">{STAT_LABEL[k] || k}</span>
+          <div className="panel-title" style={{ marginTop: 16 }}>{t.scoring.statWeights}</div>
+          {STAT_KEYS.map((key) => (
+            <div className="weight-row" key={key}>
+              <span className="weight-name">{STAT_LABEL[key] || key}</span>
               <input
                 type="range" min={0} max={3} step={0.5}
-                value={draft.stat_weights[k] ?? 0}
-                onChange={(e) => setStat(k, Number(e.target.value))}
+                value={draft.stat_weights[key] ?? 0}
+                onChange={(e) => setStat(key, Number(e.target.value))}
               />
-              <span className="weight-val">{(draft.stat_weights[k] ?? 0).toFixed(1)}</span>
+              <span className="weight-val">{(draft.stat_weights[key] ?? 0).toFixed(1)}</span>
             </div>
           ))}
 
-          <div className="panel-title" style={{ marginTop: 16 }}>위시리스트로 컨텍스트 학습 (종류·프레임·무기별)</div>
-          <div className="hint" style={{ marginBottom: 8 }}>
-            위시리스트를 분석해 <strong>무기 종류·프레임·개별 무기</strong>별로 퍽 가중치와 인기 조합을 학습합니다.
-            같은 퍽이라도 무기에 따라 점수가 달라집니다 (예: 핸드 캐논의 무법자).
-          </div>
+          <div className="panel-title" style={{ marginTop: 16 }}>{t.scoring.learnTitle}</div>
+          <div className="hint" style={{ marginBottom: 8 }}>{t.scoring.learnHint}</div>
           <div className="controls-row" style={{ flexWrap: "wrap" }}>
             <button className="btn ghost" onClick={useCurrentWishlist}>
-              현재 위시리스트 사용 ({rolls.length}롤)
+              {t.scoring.useCurrentWishlist} ({rolls.length} {t.wishlist.rolls})
             </button>
             <label className="btn ghost" style={{ cursor: "pointer" }}>
-              DIM 위시리스트 .txt 업로드
+              {t.scoring.uploadWishlist}
               <input type="file" accept=".txt,text/plain" style={{ display: "none" }} onChange={uploadWishlist} />
             </label>
             {Object.keys(draft.context_weights || {}).length > 0 && (
-              <button className="btn ghost" onClick={clearContexts}>학습 지우기</button>
+              <button className="btn ghost" onClick={clearContexts}>{t.scoring.clearLearning}</button>
             )}
           </div>
 
           {contexts.length > 0 ? (
             <div className="ctx-list">
-              {contexts.map((c) => (
-                <div className="ctx-group" key={c.scope}>
+              {contexts.map((context) => (
+                <div className="ctx-group" key={context.scope}>
                   <div className="ctx-head">
-                    <span className="ctx-kind">{KIND_LABEL[c.kind] || c.kind}</span>
-                    <span className="ctx-label">{c.label}</span>
+                    <span className="ctx-kind">{t.scoring.kind[context.kind as keyof typeof t.scoring.kind] || context.kind}</span>
+                    <span className="ctx-label">{contextLabel(context)}</span>
                   </div>
                   <div className="ctx-perks">
-                    {c.weights.slice(0, 6).map((w) => (
-                      <span key={w.plug_hash} className={`ctx-pill ${w.weight >= 0 ? "up" : "down"}`}>
-                        {w.name || w.plug_hash} {w.weight > 0 ? "+" : ""}{w.weight}
+                    {context.weights.slice(0, 6).map((weight) => (
+                      <span key={weight.plug_hash} className={`ctx-pill ${weight.weight >= 0 ? "up" : "down"}`}>
+                        {weight.name || weight.plug_hash} {weight.weight > 0 ? "+" : ""}{weight.weight}
                       </span>
                     ))}
                   </div>
-                  {c.combos.length > 0 && (
+                  {context.combos.length > 0 && (
                     <div className="ctx-combos">
-                      조합: {c.combos.map((cb, i) => (
-                        <span key={i} className="ctx-combo">{cb.perks.map((p) => p.name || p.plug_hash).join("+")}</span>
+                      {t.scoring.combo}: {context.combos.map((combo, index) => (
+                        <span key={index} className="ctx-combo">{combo.perks.map((perk) => perk.name || perk.plug_hash).join("+")}</span>
                       ))}
                     </div>
                   )}
@@ -202,29 +206,27 @@ export function ScoringProfileEditor() {
           ) : (
             Object.keys(draft.context_weights || {}).length > 0 && (
               <div className="hint" style={{ marginTop: 8 }}>
-                컨텍스트 {Object.keys(draft.context_weights || {}).length}개 등록됨 (저장된 프로필). 다시 학습하면 상세가 표시됩니다.
+                {Object.keys(draft.context_weights || {}).length} {t.scoring.registeredContexts}
               </div>
             )
           )}
 
-          <div className="panel-title" style={{ marginTop: 16 }}>점수 비중 (가중)</div>
-          <div className="hint" style={{ marginBottom: 8 }}>
-            점수는 <strong>동일 무기·프레임·종류</strong> 위시리스트를 각각 계산해 아래 비중으로 합산하고,
-            <strong>열(총열/탄창/특성)</strong>별 기여를 다르게 둡니다. 무기별 위시리스트가 없으면 종류·프레임
-            비중까지만 반영(낮은 신뢰). 세부 조정은 JSON 가져오기로. (기본값 적용 중)
-          </div>
+          <div className="panel-title" style={{ marginTop: 16 }}>{t.scoring.scoreWeights}</div>
+          <div className="hint" style={{ marginBottom: 8 }}>{t.scoring.scoreHint}</div>
           <div className="blend-info">
-            <span className="blend-label">스코프</span>
-            {Object.entries(draft.scope_blend ?? DEFAULT_SCOPE_BLEND).map(([k, v]) => (
-              <span key={k} className="blend-pill">{SCOPE_LABEL[k] || k} {Math.round(v * 100)}%</span>
+            <span className="blend-label">{t.scoring.scope}</span>
+            {Object.entries(draft.scope_blend ?? DEFAULT_SCOPE_BLEND).map(([key, value]) => (
+              <span key={key} className="blend-pill">
+                {key === "weapon" ? t.scoring.sameWeapon : key === "frame" ? t.scoring.sameFrame : key === "type" ? t.scoring.sameType : key} {Math.round(value * 100)}%
+              </span>
             ))}
           </div>
           <div className="blend-info">
-            <span className="blend-label">열 비중</span>
+            <span className="blend-label">{t.scoring.columnWeight}</span>
             {Object.entries(draft.column_weights ?? DEFAULT_COLUMN_WEIGHTS)
-              .filter(([, v]) => v > 0)
-              .map(([k, v]) => (
-                <span key={k} className="blend-pill">{COL_LABEL[k] || k} ×{v}</span>
+              .filter(([, value]) => value > 0)
+              .map(([key, value]) => (
+                <span key={key} className="blend-pill">{t.scoring.columns[key as keyof typeof t.scoring.columns] || key} ×{value}</span>
               ))}
           </div>
 
@@ -235,17 +237,17 @@ export function ScoringProfileEditor() {
                 checked={draft.use_wishlist_weights}
                 onChange={(e) => setDraft({ ...draft, use_wishlist_weights: e.target.checked })}
               />
-              위시리스트 자동 가중치 (활성 위시리스트 실시간 반영)
+              {t.scoring.autoWishlistWeights}
             </label>
           </div>
 
           <div className="controls-row">
-            <label className="filter-stat">갓롤 ≥
+            <label className="filter-stat">{t.scoring.godThreshold}
               <input type="number" className="text-input"
                      value={draft.thresholds.god}
                      onChange={(e) => setDraft({ ...draft, thresholds: { ...draft.thresholds, god: Number(e.target.value) } })} />
             </label>
-            <label className="filter-stat">쓸만함 ≥
+            <label className="filter-stat">{t.scoring.viableThreshold}
               <input type="number" className="text-input"
                      value={draft.thresholds.viable}
                      onChange={(e) => setDraft({ ...draft, thresholds: { ...draft.thresholds, viable: Number(e.target.value) } })} />
@@ -253,46 +255,44 @@ export function ScoringProfileEditor() {
           </div>
 
           <div className="controls-row" style={{ marginTop: 12, gap: 8, flexWrap: "wrap" }}>
-            <button className="btn primary" onClick={save}>저장 & 활성화</button>
-            <button className="btn ghost" onClick={() => setDraft(blankProfile())}>새로 만들기</button>
-            <button className="btn ghost" onClick={exportJson}>JSON 내보내기</button>
+            <button className="btn primary" onClick={save}>{t.scoring.saveActivate}</button>
+            <button className="btn ghost" onClick={() => setDraft(blankProfile())}>{t.scoring.createNew}</button>
+            <button className="btn ghost" onClick={exportJson}>{t.scoring.exportJson}</button>
             <label className="btn ghost" style={{ cursor: "pointer" }}>
-              JSON 가져오기
+              {t.scoring.importJson}
               <input type="file" accept="application/json" style={{ display: "none" }} onChange={importJson} />
             </label>
           </div>
           {status && <div className="hint" style={{ marginTop: 8, color: "var(--success)" }}>{status}</div>}
-          <div className="hint" style={{ marginTop: 8 }}>
-            퍽 조합 시너지·수동 퍽 가중치는 JSON(가져오기)으로 편집할 수 있습니다.
-          </div>
+          <div className="hint" style={{ marginTop: 8 }}>{t.scoring.jsonHint}</div>
         </div>
       </div>
 
       <div>
         <div className="panel chamfer">
-          <div className="panel-title">저장된 프로필</div>
+          <div className="panel-title">{t.scoring.savedProfiles}</div>
           {activeProfile && (
             <div className="hint" style={{ marginBottom: 8 }}>
-              활성: <strong style={{ color: "var(--primary-hover)" }}>{activeProfile.name}</strong>
+              {t.scoring.active}: <strong style={{ color: "var(--primary-hover)" }}>{activeProfile.name}</strong>
             </div>
           )}
-          {profiles.length === 0 && <div className="empty">저장된 프로필이 없습니다.</div>}
-          {profiles.map((p) => (
-            <div key={p.id} className={`roll-item ${activeProfile?.id === p.id ? "wild" : ""}`}>
+          {profiles.length === 0 && <div className="empty">{t.scoring.noProfiles}</div>}
+          {profiles.map((profile) => (
+            <div key={profile.id} className={`roll-item ${activeProfile?.id === profile.id ? "wild" : ""}`}>
               <div className="r-main">
-                <div className="r-name">{p.name}</div>
+                <div className="r-name">{profile.name}</div>
                 <div className="r-perks">
-                  스탯 {Object.keys(p.stat_weights || {}).length}개
-                  {Object.keys(p.context_weights || {}).length > 0 ? ` · 컨텍스트 ${Object.keys(p.context_weights || {}).length}개` : ""}
-                  {p.use_wishlist_weights ? " · 위시리스트 가중" : ""}
+                  {Object.keys(profile.stat_weights || {}).length} {t.scoring.statsCount}
+                  {Object.keys(profile.context_weights || {}).length > 0 ? ` · ${Object.keys(profile.context_weights || {}).length} ${t.scoring.contextCount}` : ""}
+                  {profile.use_wishlist_weights ? ` · ${t.scoring.wishlistWeighted}` : ""}
                 </div>
               </div>
-              <button className="btn ghost" style={{ padding: "4px 8px", fontSize: 12 }} onClick={() => { setDraft(p); setActiveProfile(p); }}>활성화</button>
-              <button className="icon-btn" title="삭제" onClick={() => del(p.id)}>✕</button>
+              <button className="btn ghost" style={{ padding: "4px 8px", fontSize: 12 }} onClick={() => { setDraft(profile); setActiveProfile(profile); }}>{t.scoring.activate}</button>
+              <button className="icon-btn" title={t.scoring.delete} onClick={() => del(profile.id)}>✕</button>
             </div>
           ))}
           <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => setActiveProfile(null)}>
-            점수 끄기
+            {t.scoring.disableScoring}
           </button>
         </div>
       </div>

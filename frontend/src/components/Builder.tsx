@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
-import { api, CLASS_COLOR, CLASS_LABEL, ELEM_VAR, RARITY_VAR } from "../api";
+import { api, CLASS_COLOR, ELEM_VAR, RARITY_VAR } from "../api";
 import type { RollInput, ScoreResult, WeaponDetail, WeaponSummary } from "../api";
+import { damageLabel, displayName, formatTemplate, slotLabel, tierLabel, useLanguage, weaponTypeLabel } from "../i18n";
 import { PerkGrid } from "./PerkGrid";
 import { StatsPanel } from "./StatsPanel";
 import { WishlistPanel } from "./WishlistPanel";
 import { useWishlist } from "../store";
 
-const TAGS = ["PvE", "PvP", "GM", "레이드"];
+const TAGS = ["PvE", "PvP", "GM", "Raid"];
 
-// 검색은 상단 헤더의 WeaponSearch 가 담당하고, 선택된 무기는 picked 로 전달된다.
 export function Builder({ picked }: { picked: WeaponSummary | null }) {
+  const { language, t } = useLanguage();
   const { addRoll, activeProfile, rolls } = useWishlist();
   const [weapon, setWeapon] = useState<WeaponDetail | null>(null);
   const [selection, setSelection] = useState<Record<number, number[]>>({});
@@ -19,7 +20,6 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [score, setScore] = useState<ScoreResult | null>(null);
-  // 퍽별 가중치(점수) — 선택과 무관하게 무기/프로필/위시리스트로 결정
   const [perkW, setPerkW] = useState<{
     weights: Record<number, number>;
     scale: number;
@@ -30,14 +30,13 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
     kinds: Record<number, string>;
   } | null>(null);
 
-  // 활성 프로필이 있을 때, 현재 선택 퍽으로 실시간 점수 산정
   const selectedPerks = Object.values(selection).flat();
   useEffect(() => {
     if (!weapon || !activeProfile) {
       setScore(null);
       return;
     }
-    const t = window.setTimeout(() => {
+    const timeout = window.setTimeout(() => {
       api
         .score({
           weapon_hash: weapon.item_hash,
@@ -48,10 +47,9 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
         .then(setScore)
         .catch(() => setScore(null));
     }, 250);
-    return () => window.clearTimeout(t);
+    return () => window.clearTimeout(timeout);
   }, [weapon, activeProfile, JSON.stringify(selectedPerks), rolls]);
 
-  // 퍽별 가중치(점수) — 무기/프로필/위시리스트가 바뀔 때만 다시 계산(선택 무관)
   useEffect(() => {
     if (!weapon || !activeProfile) {
       setPerkW(null);
@@ -88,13 +86,12 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
     setNotes("");
   }
 
-  // 헤더 검색에서 무기를 고르면(picked) 상세를 로드해 뷰어에 표시
   useEffect(() => {
     if (!picked) { setWeapon(null); return; }
     resetBuilder();
     let cancelled = false;
     api.weapon(picked.item_hash)
-      .then((d) => { if (!cancelled) setWeapon(d); })
+      .then((detail) => { if (!cancelled) setWeapon(detail); })
       .catch(() => { if (!cancelled) setWeapon(null); });
     return () => { cancelled = true; };
   }, [picked?.item_hash]);
@@ -110,8 +107,8 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
     });
   }
 
-  function toggleTag(t: string) {
-    setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+  function toggleTag(tag: string) {
+    setTags((prev) => (prev.includes(tag) ? prev.filter((x) => x !== tag) : [...prev, tag]));
   }
 
   const colCount = Object.keys(selection).length;
@@ -128,6 +125,7 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
       Object.entries(selection).forEach(([k, v]) => {
         columns[k] = v;
       });
+      const weaponName = displayName(weapon, language);
       const input: RollInput = {
         weapon_hash: weapon.item_hash,
         columns,
@@ -135,20 +133,22 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
         trash,
         notes,
         tags,
-        comment: weapon.name,
+        comment: weaponName,
       };
       const res = await api.compile(input);
       const labelOf = (hash: number) => {
-        for (const c of weapon.columns) {
-          const p = c.perks.find((pp) => pp.plug_hash === hash);
-          if (p) return p.name;
+        for (const col of weapon.columns) {
+          const perk = col.perks.find((pp) => pp.plug_hash === hash);
+          if (perk) return displayName(perk, language);
         }
         return String(hash);
       };
       const perkLabels = Object.values(selection).flat().map(labelOf);
       addRoll({
-        input, weaponName: weapon.name, perkLabels, lines: res.lines,
-        typeLabel: weapon.type_label, damageType: weapon.default_damage_type, tier: weapon.tier,
+        input, weaponName, perkLabels, lines: res.lines,
+        typeLabel: weaponTypeLabel(weapon.weapon_subtype, t, weapon.type_label),
+        damageType: weapon.default_damage_type,
+        tier: weapon.tier,
       });
       resetBuilder();
     } finally {
@@ -158,17 +158,16 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
 
   const elemVar = weapon?.default_damage_type ? ELEM_VAR[weapon.default_damage_type] : undefined;
   const rarityVar = weapon?.tier ? RARITY_VAR[weapon.tier] : undefined;
-
   const cls = score?.classification ?? null;
   const cov = score?.coverage ?? (perkW?.signal ? perkW.coverage : null);
+  const weaponName = weapon ? displayName(weapon, language) : "";
 
   return (
     <div className="builder-main">
-      {/* 좌: 무기 헤더 + 퍽 그리드 */}
       <div className="builder-col">
         {!weapon ? (
           <div className="panel">
-            <div className="empty">상단 검색창에서 무기를 검색·선택하면 여기에 퍽 그리드가 표시됩니다.</div>
+            <div className="empty">{t.builder.empty}</div>
           </div>
         ) : (
           <>
@@ -184,23 +183,24 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
               <span className="elem-bar" />
               {weapon.icon ? <img className="w-icon" src={weapon.icon} alt="" /> : <div className="w-icon" />}
               <div>
-                <div className="w-name">{weapon.name}</div>
+                <div className="w-name">{weaponName}</div>
                 <div className="w-sub">
-                  {weapon.type_label}
-                  {weapon.damage_label ? <> · <span className="elem-name">{weapon.damage_label}</span></> : ""}
-                  {weapon.slot ? ` · ${weapon.slot}` : ""}
+                  {weaponTypeLabel(weapon.weapon_subtype, t, weapon.type_label)}
+                  {weapon.default_damage_type ? <> · <span className="elem-name">{damageLabel(weapon.default_damage_type, t, weapon.damage_label)}</span></> : ""}
+                  {weapon.slot ? ` · ${slotLabel(weapon.slot, t, weapon.slot)}` : ""}
+                  {weapon.tier ? ` · ${tierLabel(weapon.tier, t, weapon.tier_label)}` : ""}
                   {weapon.season_number ? (
-                    <> · <span className="w-season" title={`시즌 ${weapon.season_number}: ${weapon.season_name ?? ""}`}>
+                    <> · <span className="w-season" title={`${t.labels.season} ${weapon.season_number}: ${weapon.season_name ?? ""}`}>
                       {weapon.watermark && <img className="w-season-wm" src={weapon.watermark} alt="" />}
-                      시즌 {weapon.season_number}{weapon.season_name ? ` · ${weapon.season_name}` : ""}
+                      S{weapon.season_number}{weapon.season_name ? ` · ${weapon.season_name}` : ""}
                     </span></>
                   ) : null}
                 </div>
                 {weapon.season_count && weapon.season_count > 1 && (
-                  <div className="variant-note" title="이 무기는 시즌(복각)마다 퍽 풀이 다릅니다. 지금 보는 것은 이 시즌의 퍽 풀입니다. 같은 시즌 홀로포일은 동일한 퍽 풀을 공유하며, 위시리스트는 굴릴 수 있는 모든 시즌에 자동 적용됩니다.">
-                    ⛓ 이 무기는 <b>{weapon.season_count}개 시즌</b>으로 출시되었고 <b>시즌마다 퍽 풀이 다릅니다</b>.
-                    {weapon.has_holofoil && <> 이 시즌엔 홀로포일 ✦(동일 퍽 롤)도 있습니다.</>}
-                    {" "}지금은 <b>이 시즌</b>의 퍽 풀이며, 위시리스트는 해당 퍽을 굴릴 수 있는 시즌 전체에 적용됩니다.
+                  <div className="variant-note" title={t.builder.seasonVariantTitle}>
+                    {t.builder.seasonVariantPrefix} <b>{weapon.season_count}</b> {t.builder.seasonVariantSuffix}
+                    {weapon.has_holofoil && <> {t.labels.holofoil} ✦ ({t.labels.samePerkRoll}).</>}
+                    {" "}{t.builder.currentSeasonPool}
                   </div>
                 )}
               </div>
@@ -208,8 +208,8 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
 
             <div className="panel">
               <div className="panel-head">
-                <span className="panel-title" style={{ margin: 0 }}>퍽 선택</span>
-                <span className="panel-actions">열당 여러 개 = OR (줄 전개)</span>
+                <span className="panel-title" style={{ margin: 0 }}>{t.builder.perkSelection}</span>
+                <span className="panel-actions">{t.builder.multiPerkHint}</span>
               </div>
 
               {weapon.stats && Object.keys(weapon.stats).length > 0 && (
@@ -251,70 +251,63 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
         )}
       </div>
 
-      {/* 우: 현재 롤(점수·옵션·추가) + 리스트 컴파일 */}
       <aside className="roll-side">
         {weapon && (
           <div className="panel roll-panel">
-            <div className="panel-title" style={{ marginTop: 0 }}>현재 롤</div>
+            <div className="panel-title" style={{ marginTop: 0 }}>{t.builder.currentRoll}</div>
 
-            {/* 총점 — 가장 눈에 띄게 상단에 */}
             {!activeProfile ? (
-              <div className="score-hint">
-                점수 기준(프로필)을 활성화하면 이 롤의 점수가 표시됩니다. (메뉴 → 점수 기준)
-              </div>
+              <div className="score-hint">{t.builder.scoreNoProfile}</div>
             ) : score && score.score != null && cls ? (
               <div className="roll-score" style={{ ["--score-color" as any]: CLASS_COLOR[cls] }}>
                 <div className="rs-top">
                   <span className="rs-num">{score.score}</span>
                   <span className="rs-max">/100</span>
-                  <span className="rs-cls">{CLASS_LABEL[cls]}</span>
+                  <span className="rs-cls">{t.scoring.classLabel[cls as keyof typeof t.scoring.classLabel]}</span>
                 </div>
                 <div className="rs-bd">
-                  {score.breakdown.perk != null && `퍽 ${score.breakdown.perk}`}
-                  {score.breakdown.synergy != null && ` · 조합 +${score.breakdown.synergy}`}
+                  {score.breakdown.perk != null && `${t.labels.perk} ${score.breakdown.perk}`}
+                  {score.breakdown.synergy != null && ` · ${t.labels.synergy} +${score.breakdown.synergy}`}
                 </div>
               </div>
             ) : (
-              <div className="score-hint">
-                이 무기(또는 종류)의 위시리스트 롤이 있어야 점수가 매겨집니다.
-              </div>
+              <div className="score-hint">{t.builder.scoreNoSignal}</div>
             )}
 
             {cov != null && cov < 1 && (
-              <div className="coverage-note" title="이 무기의 위시리스트가 없어 같은 종류·프레임 기준으로만 평가됩니다. 무기별 롤을 등록하면 최대 100%까지 평가됩니다.">
-                ⓘ 이 무기 위시리스트 미등록 — <b>종류·프레임 기준</b>(최대 {Math.round(cov * 100)}%)
+              <div className="coverage-note" title={t.builder.coverageTitle}>
+                ⓘ {t.builder.coverageText} ({Math.round(cov * 100)}% max)
               </div>
             )}
 
-            {/* 롤 옵션 */}
             <div className="controls-row" style={{ marginTop: 14 }}>
               <button
                 className={`toggle trash ${trash ? "on" : ""}`}
                 onClick={() => {
-                  setTrash((t) => !t);
+                  setTrash((value) => !value);
                   if (!trash) setWildcard(false);
                 }}
               >
-                👎 트래시 롤
+                👎 {t.labels.trashRoll}
               </button>
               <button
                 className={`toggle wild ${wildcard ? "on" : ""}`}
                 onClick={() => {
-                  setWildcard((w) => !w);
+                  setWildcard((value) => !value);
                   if (!wildcard) setTrash(false);
                 }}
               >
-                ✷ 와일드카드
+                ✷ {t.labels.wildcard}
               </button>
             </div>
             <div className="tag-chips" style={{ marginBottom: 12 }}>
-              {TAGS.map((t) => (
+              {TAGS.map((tag) => (
                 <button
-                  key={t}
-                  className={`chip ${tags.includes(t) ? "on" : ""}`}
-                  onClick={() => toggleTag(t)}
+                  key={tag}
+                  className={`chip ${tags.includes(tag) ? "on" : ""}`}
+                  onClick={() => toggleTag(tag)}
                 >
-                  {t}
+                  {tag}
                 </button>
               ))}
             </div>
@@ -322,14 +315,14 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
             <textarea
               className="text-input"
               rows={2}
-              placeholder="메모 (#notes:) — 선택 사항"
+              placeholder={t.builder.notesPlaceholder}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
 
             <div className="hint" style={{ marginTop: 10 }}>
-              {wildcard ? "와일드카드: item=-69420 " : trash ? "트래시 롤: 음수 해시 " : ""}
-              {colCount > 0 ? `· ${comboCount}개 줄로 전개` : "· 퍽 미선택"}
+              {wildcard ? `${t.builder.wildcardHint} ` : trash ? `${t.builder.trashHint} ` : ""}
+              {colCount > 0 ? `· ${formatTemplate(t.builder.lineExpansion, { count: comboCount })}` : `· ${t.builder.noPerks}`}
             </div>
             <button
               className="btn primary"
@@ -337,7 +330,7 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
               disabled={!canAdd || busy}
               onClick={add}
             >
-              ＋ 위시리스트에 추가
+              + {t.builder.addToWishlist}
             </button>
           </div>
         )}

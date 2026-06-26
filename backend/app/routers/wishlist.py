@@ -85,8 +85,8 @@ def export_wishlist(payload: ExportIn, conn: sqlite3.Connection = Depends(get_co
     warning = None
     if source == "seed":
         warning = (
-            "현재 샘플(seed) 데이터로 동작 중입니다. 이 .txt 의 퍽 해시는 합성값이라 "
-            "DIM 에서 실제 매칭되지 않습니다. 실사용하려면 Bungie 매니페스트를 적재하세요."
+            "Currently running on sample(seed) data. Perk hashes in this .txt are synthetic "
+            "and will not match real DIM items. Load the Bungie manifest before real use."
         )
 
     filename = f"{_slugify(payload.title or 'dim-wishlist')}.txt"
@@ -142,10 +142,17 @@ def import_wishlist(payload: ImportIn, conn: sqlite3.Connection = Depends(get_co
             lines = []  # 조합 폭발 시 미리보기 줄만 생략(롤 자체는 가져옴)
         selected = [h for hs in columns.values() for h in hs]
         names = repo.perk_names(conn, selected)
+        names_en = {}
+        if selected:
+            placeholders = ",".join("?" * len(selected))
+            for nr in conn.execute(f"SELECT plug_hash, name_en FROM perks WHERE plug_hash IN ({placeholders})", selected).fetchall():
+                names_en[nr["plug_hash"]] = nr["name_en"]
         out.append(ImportedRoll(
             input=item,
             weapon_name=wname,
+            weapon_name_en=w["name_en"],
             perk_labels=[names.get(h, str(h)) for h in selected],
+            perk_labels_en=[names_en.get(h) or names.get(h, str(h)) for h in selected],
             lines=lines,
             type_label=labels.weapon_type_label(w["weapon_subtype"]),
             damage_type=w["default_damage_type"],
