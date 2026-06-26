@@ -2,7 +2,6 @@ import type { WeaponDetail } from "../api";
 import { perkTier, PERK_TIER_COLOR } from "../api";
 import { columnKindLabel, displayName, useLanguage } from "../i18n";
 import { PerkIcon } from "./PerkIcon";
-import { STAT_LABEL } from "./StatsPanel";
 
 export function PerkGrid({
   weapon,
@@ -72,7 +71,7 @@ export function PerkGrid({
                         <span className="perk-delta">
                           {Object.entries(p.stats).map(([k, v]) => (
                             <span key={k} className={v > 0 ? "up" : "down"}>
-                              {STAT_LABEL[k] || k} {v > 0 ? "+" : ""}{v}{" "}
+                              {t.stats[k as keyof typeof t.stats] || k} {v > 0 ? "+" : ""}{v}{" "}
                             </span>
                           ))}
                         </span>
@@ -105,7 +104,7 @@ export function PerkGrid({
                         <div className="perk-tooltip-stats">
                           {Object.entries(p.stats).map(([k, v]) => (
                             <span key={k} className={`perk-tooltip-stat ${v > 0 ? "pos" : "neg"}`}>
-                              {STAT_LABEL[k] || k} {v > 0 ? "+" : ""}{v}
+                              {t.stats[k as keyof typeof t.stats] || k} {v > 0 ? "+" : ""}{v}
                             </span>
                           ))}
                         </div>

@@ -52,7 +52,8 @@ class WeaponSummary(BaseModel):
     is_holofoil: bool = False                      # 이 무기 자체가 홀로포일인지
     season_count: int = 1                          # 이 무기의 총 시즌(복각) 수
     season_number: Optional[int] = None            # 이 무기가 출시된 시즌 번호 (예: 5)
-    season_name: Optional[str] = None              # 시즌명 (예: 대장간 시즌)
+    season_name: Optional[str] = None              # 시즌명 (ko, 예: 대장간 시즌)
+    season_name_en: Optional[str] = None           # 시즌명 (en) — 영어 모드 표시용
 
 
 class WeaponDetail(WeaponSummary):

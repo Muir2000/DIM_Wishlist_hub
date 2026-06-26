@@ -1,7 +1,4 @@
 import { useLanguage } from "../i18n";
-import { en } from "../i18n/en";
-
-export const STAT_LABEL: Record<string, string> = en.stats;
 
 const ORDER = [
   "impact", "range", "stability", "handling", "reload", "aim_assist",

@@ -276,14 +276,14 @@ def ingest(force: bool = False, limit: int = 0) -> None:
         cur.execute(
             """INSERT OR REPLACE INTO weapons
                (item_hash,name_ko,name_en,icon,watermark,tier,weapon_subtype,
-                ammo_type,slot,default_damage_type,frame,frame_hash,
+                ammo_type,slot,default_damage_type,frame,frame_en,frame_hash,
                 is_holofoil,is_adept,is_featured,variant_group,redacted)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)""",
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)""",
             (item_hash, dp.get("name"), en_names.get(item_hash), dp.get("icon"),
              _watermark(item), tier, subtype,
              (item.get("equippingBlock") or {}).get("ammoType"),
              _slot(item), DAMAGE_TYPE.get(item.get("defaultDamageType")),
-             frame_name, frame_hash,
+             frame_name, (en_names.get(frame_hash) if frame_hash else None), frame_hash,
              1 if item.get("isHolofoil") else 0,
              1 if item.get("isAdept") else 0,
              1 if item.get("isFeaturedItem") else 0,

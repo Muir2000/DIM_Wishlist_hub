@@ -47,17 +47,6 @@ export default function App() {
           <WeaponSearch activeHash={picked?.item_hash} onSelect={setPicked} />
         )}
         <div className="header-right">
-          <label className="language-select" title={t.language.label}>
-            <span>{t.language.label}</span>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as LanguageCode)}
-            >
-              {LANGUAGES.map((lang) => (
-                <option key={lang.code} value={lang.code}>{lang.label}</option>
-              ))}
-            </select>
-          </label>
           <span className="header-active-tab">{activeLabel}</span>
           <button
             className={`hamburger ${menuOpen ? "open" : ""}`}
@@ -84,6 +73,22 @@ export default function App() {
             </button>
           ))}
         </nav>
+
+        <div className="drawer-settings">
+          <div className="drawer-section-title">{t.app.settings}</div>
+          <label className="drawer-setting" title={t.language.label}>
+            <span>{t.language.label}</span>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as LanguageCode)}
+            >
+              {LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code}>{lang.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
         {status && (
           <div className="drawer-status" title={status.note ?? ""}>
             <span className={`status-dot ${isSeed ? "seed" : ""}`} />

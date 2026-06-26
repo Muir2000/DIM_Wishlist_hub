@@ -1,12 +1,12 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { api, ELEM_VAR } from "../api";
 import type { FacetOption, FilterFacets, PerkLite, SearchHelp, WeaponFilters, WeaponSummary } from "../api";
-import { STAT_LABEL } from "./StatsPanel";
 import {
   ammoLabel,
   damageLabel,
   displayName,
   formatTemplate,
+  seasonName,
   slotLabel,
   tierLabel,
   useLanguage,
@@ -274,6 +274,8 @@ export function WeaponSearch({
     if (id === "tier") return tierLabel(Number(option.value), t, option.label);
     if (id === "slot") return slotLabel(String(option.value), t, option.label);
     if (id === "ammo") return ammoLabel(Number(option.value), t, option.label);
+    // frame/origin/season 등 동적 매니페스트 값: 영어 모드면 백엔드가 내려준 label_en 사용.
+    if (language === "en" && option.label_en) return option.label_en;
     return option.label;
   }
 
@@ -387,9 +389,9 @@ export function WeaponSearch({
                     <span className="season-line">
                       {w.watermark && <img className="season-wm" src={w.watermark} alt="" />}
                       {w.season_number ? (
-                        <span className="season-chip" title={`${t.labels.season} ${w.season_number}: ${w.season_name ?? ""}`}>
+                        <span className="season-chip" title={`${t.labels.season} ${w.season_number}: ${seasonName(w, language)}`}>
                           S{w.season_number}
-                          {w.season_name ? <span className="season-nm"> · {w.season_name}</span> : null}
+                          {seasonName(w, language) ? <span className="season-nm"> · {seasonName(w, language)}</span> : null}
                         </span>
                       ) : (
                         <span className="season-chip unknown">{t.labels.noSeasonInfo}</span>
@@ -466,7 +468,7 @@ export function WeaponSearch({
               <div className="stat-filter-grid">
                 {STAT_FILTER_KEYS.map((k) => (
                   <div className="stat-filter-row" key={k}>
-                    <span className="stat-filter-name">{STAT_LABEL[k] || k}</span>
+                    <span className="stat-filter-name">{t.stats[k as keyof typeof t.stats] || k}</span>
                     <input type="number" className="stat-filter-input" placeholder=">=" min={0} max={100}
                            value={statFilters[k]?.min ?? ""} onChange={(e) => setStat(k, "min", e.target.value)} />
                     <input type="number" className="stat-filter-input" placeholder="<=" min={0} max={100}

@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS weapons (
     slot                TEXT,
     default_damage_type TEXT,
     frame               TEXT,
+    frame_en            TEXT,
     frame_hash          INTEGER,
     is_holofoil         INTEGER DEFAULT 0,   -- 외형만 다른 홀로포일 변형 (성능 동일)
     is_adept            INTEGER DEFAULT 0,   -- 에이뎁트 변형
@@ -156,6 +157,7 @@ def apply_schema(conn: sqlite3.Connection) -> None:
         ("is_adept", "INTEGER DEFAULT 0"),
         ("is_featured", "INTEGER DEFAULT 0"),
         ("variant_group", "TEXT"),
+        ("frame_en", "TEXT"),
     ):
         try:
             conn.execute(f"ALTER TABLE weapons ADD COLUMN {col} {decl}")

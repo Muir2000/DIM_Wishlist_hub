@@ -46,7 +46,8 @@ export interface WeaponSummary {
   is_holofoil?: boolean;         // 이 무기 자체가 홀로포일
   season_count?: number;         // 이 무기의 총 시즌(복각) 수
   season_number?: number | null; // 출시 시즌 번호 (예: 5)
-  season_name?: string | null;   // 시즌명 (예: 대장간 시즌)
+  season_name?: string | null;   // 시즌명 (ko, 예: 대장간 시즌)
+  season_name_en?: string | null; // 시즌명 (en) — 영어 모드 표시용
 }
 
 export interface WeaponDetail extends WeaponSummary {
@@ -167,7 +168,8 @@ export interface WeaponFilters {
 
 export interface FacetOption {
   value: number | string;
-  label: string;
+  label: string;        // ko 라벨(또는 매핑 없는 동적 값)
+  label_en?: string | null; // en 라벨 — 프레임/기원/시즌 등 동적 매니페스트 값의 영어 표기
   count: number;
 }
 

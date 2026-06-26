@@ -50,11 +50,13 @@ def season_number(watermark: Optional[str]) -> Optional[int]:
     return _wm_to_season.get(_path_only(watermark))
 
 
-def season_name(num: Optional[int]) -> Optional[str]:
+def season_name(num: Optional[int], lang: str = "ko") -> Optional[str]:
     if num is None:
         return None
     info = _season_names.get(str(num)) or {}
-    return info.get("ko") or info.get("en")
+    if lang == "en":
+        return info.get("en") or info.get("ko") or None
+    return info.get("ko") or info.get("en") or None
 
 
 def season_for_watermark(watermark: Optional[str]) -> Tuple[Optional[int], Optional[str]]:

@@ -13,6 +13,7 @@ export const en = {
     sampleData: "Sample data",
     manifest: "Manifest",
     weapons: "weapons",
+    settings: "Settings",
     tabs: {
       builder: "Builder",
       scoring: "Scoring",

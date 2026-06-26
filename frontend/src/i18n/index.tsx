@@ -1,15 +1,19 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { en, type Messages } from "./en";
+import { ko } from "./ko";
 
-export type LanguageCode = "en";
+export type LanguageCode = "en" | "ko";
 
+// 각 언어는 자기 언어 표기로 노출(활성 언어와 무관).
 export const LANGUAGES: Array<{ code: LanguageCode; label: string }> = [
-  { code: "en", label: en.language.english },
+  { code: "ko", label: "한국어" },
+  { code: "en", label: "English" },
 ];
 
 const RESOURCES: Record<LanguageCode, Messages> = {
   en,
+  ko,
 };
 
 interface LanguageContextValue {
@@ -24,9 +28,13 @@ const STORAGE_KEY = "dimhub.language";
 function initialLanguage(): LanguageCode {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "en") return saved;
+    if (saved === "en" || saved === "ko") return saved;
   } catch { /* ignore */ }
-  return "en";
+  // 저장값이 없으면 브라우저 언어로 추정(영어권만 en, 그 외 기본 ko).
+  try {
+    if (navigator.language && navigator.language.toLowerCase().startsWith("en")) return "en";
+  } catch { /* ignore */ }
+  return "ko";
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
@@ -62,6 +70,16 @@ export function displayName(
 
 export function formatTemplate(template: string, values: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
+}
+
+// 매니페스트 시즌명: 언어에 맞춰 season_name_en / season_name 중 선택(폴백 포함).
+export function seasonName(
+  item: { season_name?: string | null; season_name_en?: string | null } | null | undefined,
+  language: LanguageCode,
+): string {
+  if (!item) return "";
+  if (language === "en") return item.season_name_en || item.season_name || "";
+  return item.season_name || item.season_name_en || "";
 }
 export function weaponTypeLabel(
   subtype: number | null | undefined,

@@ -129,6 +129,7 @@ def filter_facets(
     각 카테고리는 자기 필터를 제외하고 계산해 OR 다중선택을 유지(예: '폭발 용광로' → 물리(3)/파동 소총(3))."""
     fc = repo.contextual_facets(conn, params)
     dm, st, ti, sl, am, fr = fc["elements"], fc["types"], fc["tiers"], fc["slots"], fc["ammo"], fc["frames"]
+    fmap = repo.frame_name_map(conn)   # 프레임 한국어→영어(영어 모드 라벨용)
     DMG_ORDER = ["Kinetic", "Arc", "Solar", "Void", "Stasis", "Strand"]
     return {
         "elements": [
@@ -156,15 +157,18 @@ def filter_facets(
             for k in (1, 2, 3) if k in am
         ],
         "frames": sorted(
-            [{"value": k, "label": k, "count": v} for k, v in fr.items() if k],
+            [{"value": k, "label": k, "label_en": fmap.get(k), "count": v} for k, v in fr.items() if k],
             key=lambda x: -x["count"],
         ),
         "origins": [
-            {"value": r["v"], "label": r["v"], "count": r["c"]}
+            {"value": r["v"], "label": r["v"], "label_en": r["v_en"], "count": r["c"]}
             for r in fc["origins"]
         ],
         "seasons": sorted(
-            [{"value": num, "label": f"S{num} · {seasons.season_name(num) or ''}".strip(" ·"), "count": cnt}
+            [{"value": num,
+              "label": f"S{num} · {seasons.season_name(num) or ''}".strip(" ·"),
+              "label_en": f"S{num} · {seasons.season_name(num, 'en') or ''}".strip(" ·"),
+              "count": cnt}
              for num, cnt in fc["seasons"].items()],
             key=lambda x: -x["value"],
         ),

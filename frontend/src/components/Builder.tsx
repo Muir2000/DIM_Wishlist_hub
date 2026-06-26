@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, CLASS_COLOR, ELEM_VAR, RARITY_VAR } from "../api";
 import type { RollInput, ScoreResult, WeaponDetail, WeaponSummary } from "../api";
-import { damageLabel, displayName, formatTemplate, slotLabel, tierLabel, useLanguage, weaponTypeLabel } from "../i18n";
+import { damageLabel, displayName, formatTemplate, seasonName, slotLabel, tierLabel, useLanguage, weaponTypeLabel } from "../i18n";
 import { PerkGrid } from "./PerkGrid";
 import { StatsPanel } from "./StatsPanel";
 import { WishlistPanel } from "./WishlistPanel";
@@ -190,9 +190,9 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
                   {weapon.slot ? ` · ${slotLabel(weapon.slot, t, weapon.slot)}` : ""}
                   {weapon.tier ? ` · ${tierLabel(weapon.tier, t, weapon.tier_label)}` : ""}
                   {weapon.season_number ? (
-                    <> · <span className="w-season" title={`${t.labels.season} ${weapon.season_number}: ${weapon.season_name ?? ""}`}>
+                    <> · <span className="w-season" title={`${t.labels.season} ${weapon.season_number}: ${seasonName(weapon, language)}`}>
                       {weapon.watermark && <img className="w-season-wm" src={weapon.watermark} alt="" />}
-                      S{weapon.season_number}{weapon.season_name ? ` · ${weapon.season_name}` : ""}
+                      S{weapon.season_number}{seasonName(weapon, language) ? ` · ${seasonName(weapon, language)}` : ""}
                     </span></>
                   ) : null}
                 </div>

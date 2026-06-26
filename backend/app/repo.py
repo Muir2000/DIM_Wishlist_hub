@@ -184,12 +184,27 @@ def _facet_by_col(conn, base: dict, exclude_key: str, col: str, extra_cond: str 
 def _facet_origins(conn, base: dict) -> List[sqlite3.Row]:
     where, params = _build_where(**{**base, "origin_names": None})
     sql = _facet_cte(where) + """
-      SELECT p.name_ko AS v, COUNT(DISTINCT wp.weapon_hash) AS c
+      SELECT p.name_ko AS v, MAX(p.name_en) AS v_en, COUNT(DISTINCT wp.weapon_hash) AS c
       FROM weapon_perks wp JOIN perks p ON p.plug_hash = wp.plug_hash
       WHERE wp.column_kind = 'origin' AND p.name_ko IS NOT NULL
         AND wp.weapon_hash IN (SELECT item_hash FROM ranked WHERE rn = 1)
       GROUP BY p.name_ko ORDER BY c DESC"""
     return conn.execute(sql, params).fetchall()
+
+
+def frame_name_map(conn: sqlite3.Connection) -> Dict[str, str]:
+    """프레임(아키타입) 한국어명 → 영어명 매핑(weapons.frame_en). 영어 모드 프레임 라벨용.
+
+    frame_en 은 매니페스트 적재 시 채워진다(ingest). 컬럼이 없는 구버전 DB(미적재)에서는
+    빈 매핑을 반환해 호출부가 한국어로 폴백하게 한다(graceful)."""
+    try:
+        rows = conn.execute(
+            "SELECT frame AS ko, frame_en AS en FROM weapons "
+            "WHERE frame IS NOT NULL AND frame != '' AND frame_en IS NOT NULL AND frame_en != ''"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return {}  # frame_en 컬럼 없음(재적재 전) → 한국어 폴백
+    return {r["ko"]: r["en"] for r in rows if r["ko"] and r["en"]}
 
 
 def _facet_seasons(conn, base: dict) -> Dict[int, int]:

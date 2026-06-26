@@ -3,7 +3,6 @@ import { api } from "../api";
 import type { DeriveContext, DeriveResult, ScoringProfile } from "../api";
 import { useLanguage, weaponTypeLabel } from "../i18n";
 import { useWishlist } from "../store";
-import { STAT_LABEL } from "./StatsPanel";
 
 const STAT_KEYS = ["handling", "range", "stability", "reload", "aim_assist", "impact", "recoil", "zoom"];
 const DEFAULT_SCOPE_BLEND = { weapon: 0.6, frame: 0.25, type: 0.15 };
@@ -153,7 +152,7 @@ export function ScoringProfileEditor() {
           <div className="panel-title" style={{ marginTop: 16 }}>{t.scoring.statWeights}</div>
           {STAT_KEYS.map((key) => (
             <div className="weight-row" key={key}>
-              <span className="weight-name">{STAT_LABEL[key] || key}</span>
+              <span className="weight-name">{t.stats[key as keyof typeof t.stats] || key}</span>
               <input
                 type="range" min={0} max={3} step={0.5}
                 value={draft.stat_weights[key] ?? 0}

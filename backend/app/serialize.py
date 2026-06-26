@@ -34,6 +34,7 @@ def weapon_summary(row: sqlite3.Row) -> WeaponSummary:
         watermark=icon_url(row["watermark"]),
         season_number=s_num,
         season_name=s_name,
+        season_name_en=seasons.season_name(s_num, "en"),
         tier=row["tier"],
         tier_label=labels.TIER_KO.get(row["tier"]),
         weapon_subtype=row["weapon_subtype"],
