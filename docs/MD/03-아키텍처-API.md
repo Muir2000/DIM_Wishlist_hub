@@ -29,6 +29,7 @@ DIM_Wishlist_hub/
 ├─ ingest/               # manifest_ingest.py, voltron_bootstrap.py
 ├─ frontend/src/
 │  ├─ App.tsx, main.tsx, store.tsx, api.ts, theme.css
+│  ├─ i18n/              # LanguageProvider/useLanguage, en.ts(영문 리소스), 라벨 헬퍼 (다국어)
 │  └─ components/        # WeaponSearch, PerkGrid, PerkIcon, StatsPanel, Builder,
 │                        #   WishlistPanel, ListRail, MetaDashboard, ScoringProfileEditor, InventoryCleanup
 ├─ scripts/dev-local.mjs        # WebDAV 우회 dev 실행
