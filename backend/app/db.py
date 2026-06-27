@@ -136,7 +136,7 @@ CREATE INDEX IF NOT EXISTS idx_rs_weapon   ON roll_stats(weapon_hash);
 CREATE INDEX IF NOT EXISTS idx_ws_weapon   ON weapon_stats(weapon_hash);
 CREATE INDEX IF NOT EXISTS idx_ps_plug     ON perk_stats(plug_hash);
 CREATE INDEX IF NOT EXISTS idx_inv_member  ON inventory_items(membership_id);
-CREATE INDEX IF NOT EXISTS idx_profiles_owner ON scoring_profiles(owner);
+-- idx_profiles_owner 는 apply_schema 에서 owner 컬럼 보강 후 생성(레거시 DB 호환).
 """
 
 # 시작 시 결정되는 활성 DB 정보
@@ -182,6 +182,8 @@ def apply_schema(conn: sqlite3.Connection) -> None:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
         except sqlite3.OperationalError:
             pass
+    # owner 컬럼이 보강된 뒤에야 인덱스를 만들 수 있다(레거시 DB 는 위 ALTER 전까지 owner 부재).
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_profiles_owner ON scoring_profiles(owner)")
     conn.commit()
 
 
