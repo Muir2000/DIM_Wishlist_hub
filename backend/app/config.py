@@ -1,5 +1,6 @@
 """환경 설정 (.env 로드 포함)."""
 import os
+import secrets
 from pathlib import Path
 
 try:  # python-dotenv 는 선택 의존성
@@ -47,3 +48,28 @@ def _resolve_db_path() -> Path:
 
 DB_PATH = _resolve_db_path()
 SEED_CACHE_PATH = DATA_DIR / "seed_cache.sqlite"
+
+
+def _load_session_secret() -> str:
+    """세션 쿠키 서명 키. env(SESSION_SECRET) 우선, 없으면 DATA_DIR 에 1회 생성·영속
+    (재시작 후에도 쿠키 유지). 파일 기록 불가 시 임시 키(재시작마다 재로그인 필요)."""
+    val = os.getenv("SESSION_SECRET", "").strip()
+    if val:
+        return val
+    path = DATA_DIR / ".session_secret"
+    try:
+        if path.exists():
+            saved = path.read_text(encoding="utf-8").strip()
+            if saved:
+                return saved
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        generated = secrets.token_hex(32)
+        path.write_text(generated, encoding="utf-8")
+        return generated
+    except OSError:
+        return secrets.token_hex(32)
+
+
+SESSION_SECRET = _load_session_secret()
+# 쿠키 Secure 속성: https 배포 시 SESSION_COOKIE_SECURE=1 로 켠다(기본 off — NAS http).
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "").strip() in ("1", "true", "True")

@@ -14,6 +14,9 @@ export const en = {
     manifest: "Manifest",
     weapons: "weapons",
     settings: "Settings",
+    account: "Account",
+    logout: "Sign out",
+    loginHint: "Sign in with Bungie to keep your own profiles and wishlist.",
     tabs: {
       builder: "Builder",
       scoring: "Scoring",

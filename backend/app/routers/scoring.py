@@ -23,6 +23,7 @@ from ..models import (
     ScoreResult,
     ScoringProfile,
 )
+from ..session import current_membership, require_membership
 
 router = APIRouter(tags=["scoring"])
 
@@ -35,63 +36,73 @@ def _row_to_profile(row: sqlite3.Row) -> ScoringProfile:
 
 
 @router.get("/scoring-profiles", response_model=List[ScoringProfile])
-def list_profiles(conn: sqlite3.Connection = Depends(get_conn)):
-    return [_row_to_profile(r) for r in repo.list_profiles(conn)]
+def list_profiles(conn: sqlite3.Connection = Depends(get_conn),
+                  me: str = Depends(current_membership)):
+    # 비로그인(me=None)은 빈 목록 — repo.list_profiles 가 처리.
+    return [_row_to_profile(r) for r in repo.list_profiles(conn, me)]
 
 
 @router.get("/scoring-profiles/{profile_id}", response_model=ScoringProfile)
-def get_profile(profile_id: str, conn: sqlite3.Connection = Depends(get_conn)):
-    row = repo.get_profile(conn, profile_id)
+def get_profile(profile_id: str, conn: sqlite3.Connection = Depends(get_conn),
+                me: str = Depends(require_membership)):
+    row = repo.get_profile(conn, profile_id, me)
     if not row:
         raise HTTPException(status_code=404, detail="프로필을 찾을 수 없습니다.")
     return _row_to_profile(row)
 
 
 @router.post("/scoring-profiles", response_model=ScoringProfile)
-def save_profile(profile: ScoringProfile, conn: sqlite3.Connection = Depends(get_conn)):
+def save_profile(profile: ScoringProfile, conn: sqlite3.Connection = Depends(get_conn),
+                 me: str = Depends(require_membership)):
     pid = profile.id or uuid.uuid4().hex[:12]
+    # 기존 id 로 저장 시 타인 프로필 덮어쓰기 방지(소유 검증).
+    if profile.id and repo.get_profile(conn, profile.id) and not repo.get_profile(conn, profile.id, me):
+        raise HTTPException(status_code=403, detail="이 프로필을 수정할 권한이 없습니다.")
     now = datetime.now(timezone.utc).isoformat()
     profile.id = pid
     profile.updated_at = now
-    repo.upsert_profile(conn, pid, profile.name, profile.model_dump_json(), now)
+    repo.upsert_profile(conn, pid, profile.name, profile.model_dump_json(), me, now)
     return profile
 
 
 @router.delete("/scoring-profiles/{profile_id}")
-def delete_profile(profile_id: str, conn: sqlite3.Connection = Depends(get_conn)):
-    n = repo.delete_profile(conn, profile_id)
+def delete_profile(profile_id: str, conn: sqlite3.Connection = Depends(get_conn),
+                   me: str = Depends(require_membership)):
+    n = repo.delete_profile(conn, profile_id, me)
     if not n:
         raise HTTPException(status_code=404, detail="프로필을 찾을 수 없습니다.")
     return {"deleted": profile_id}
 
 
-def _resolve_profile(req: ScoreRequest, conn: sqlite3.Connection) -> dict:
+def _resolve_profile(req: ScoreRequest, conn: sqlite3.Connection, me) -> dict:
     if req.profile is not None:
         return req.profile.model_dump()
-    if req.profile_id:
-        row = repo.get_profile(conn, req.profile_id)
+    if req.profile_id and me:  # 저장된 프로필 참조는 로그인 + 본인 소유만
+        row = repo.get_profile(conn, req.profile_id, me)
         if row:
             return json.loads(row["json"])
     return scoring.default_profile()
 
 
 @router.post("/score", response_model=ScoreResult)
-def score(req: ScoreRequest, conn: sqlite3.Connection = Depends(get_conn)):
-    prof = _resolve_profile(req, conn)
+def score(req: ScoreRequest, conn: sqlite3.Connection = Depends(get_conn),
+          me: str = Depends(current_membership)):
+    prof = _resolve_profile(req, conn, me)
     ctx = scoring.derive_context(conn, [r.model_dump() for r in req.wishlist_rolls])
     result = scoring.score_roll(conn, req.weapon_hash, req.perks, prof, context=ctx)
     return ScoreResult(**result)
 
 
 @router.post("/score/perk-weights")
-def perk_weights(req: ScoreRequest, conn: sqlite3.Connection = Depends(get_conn)) -> Dict[str, Any]:
+def perk_weights(req: ScoreRequest, conn: sqlite3.Connection = Depends(get_conn),
+                 me: str = Depends(current_membership)) -> Dict[str, Any]:
     """무기의 **모든 퍽**에 대해 활성 프로필+위시리스트 기준 가중치를 반환(빌더 퍽별 점수 표시용).
 
     반환: weights(plug→가중치), has_signal, scale(배지 척도=50),
     그리고 열 비중 환산 표시용 max_possible·coverage·column_weights·kinds(plug→열종류).
     퍽의 이 무기 점수 기여(%) = column_weights[kind] * weight * 100 / max_possible.
     """
-    prof_raw = _resolve_profile(req, conn)
+    prof_raw = _resolve_profile(req, conn, me)
     ctx = scoring.derive_context(conn, [r.model_dump() for r in req.wishlist_rolls])
     plug_cols, weapon_cols = scoring.weapon_columns(conn, req.weapon_hash)
     hashes = list(plug_cols.keys())

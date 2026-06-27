@@ -160,6 +160,19 @@ a { color: var(--primary-hover); }
   background: var(--surface-2); color: var(--text-primary);
   font-family: var(--font-display); font-size: 12px; cursor: pointer;
 }
+.drawer-setting.account { cursor: default; }
+.account-actions { display: inline-flex; align-items: center; gap: 8px; }
+.account-name {
+  font-size: 12px; color: var(--text-primary); max-width: 96px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.drawer-login-hint { font-size: 11px; color: var(--text-faint); padding: 2px 4px 0; line-height: 1.45; }
+.login-gate {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 8px 0 12px; padding: 10px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong); background: var(--surface-2);
+  font-size: 12px; color: var(--text-muted);
+}
 .status-chip {
   display: inline-flex; align-items: center; gap: 8px; font-size: 12px;
   padding: 5px 11px; border-radius: var(--radius-pill);

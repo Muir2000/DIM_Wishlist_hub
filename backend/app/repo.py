@@ -459,41 +459,75 @@ def weapons_count(conn: sqlite3.Connection) -> int:
     return conn.execute("SELECT COUNT(*) AS c FROM weapons").fetchone()["c"]
 
 
-# --- 점수화 프로필 (JSON blob 저장) ---
-def list_profiles(conn: sqlite3.Connection) -> List[sqlite3.Row]:
+# --- 점수화 프로필 (JSON blob 저장; owner=membership_id 로 사용자별 분리) ---
+def list_profiles(conn: sqlite3.Connection, owner: Optional[str]) -> List[sqlite3.Row]:
+    if not owner:
+        return []  # 비로그인: 빈 목록(레거시 NULL-owner 전역 프로필 미노출)
     return conn.execute(
-        "SELECT id, name, json, updated_at FROM scoring_profiles ORDER BY updated_at DESC"
+        "SELECT id, name, json, updated_at FROM scoring_profiles WHERE owner = ? ORDER BY updated_at DESC",
+        (owner,),
     ).fetchall()
 
 
-def get_profile(conn: sqlite3.Connection, profile_id: str) -> Optional[sqlite3.Row]:
+def get_profile(conn: sqlite3.Connection, profile_id: str, owner: Optional[str] = None) -> Optional[sqlite3.Row]:
+    if owner:
+        return conn.execute(
+            "SELECT id, name, json, updated_at FROM scoring_profiles WHERE id = ? AND owner = ?",
+            (profile_id, owner),
+        ).fetchone()
     return conn.execute(
         "SELECT id, name, json, updated_at FROM scoring_profiles WHERE id = ?", (profile_id,)
     ).fetchone()
 
 
-def upsert_profile(conn: sqlite3.Connection, profile_id: str, name: str, json_str: str, updated_at: str) -> None:
+def upsert_profile(conn: sqlite3.Connection, profile_id: str, name: str, json_str: str,
+                   owner: str, updated_at: str) -> None:
     conn.execute(
-        """INSERT OR REPLACE INTO scoring_profiles (id, name, json, updated_at)
-           VALUES (?,?,?,?)""",
-        (profile_id, name, json_str, updated_at),
+        """INSERT OR REPLACE INTO scoring_profiles (id, name, json, owner, updated_at)
+           VALUES (?,?,?,?,?)""",
+        (profile_id, name, json_str, owner, updated_at),
     )
     conn.commit()
 
 
-def delete_profile(conn: sqlite3.Connection, profile_id: str) -> int:
-    cur = conn.execute("DELETE FROM scoring_profiles WHERE id = ?", (profile_id,))
+def delete_profile(conn: sqlite3.Connection, profile_id: str, owner: Optional[str] = None) -> int:
+    if owner:
+        cur = conn.execute("DELETE FROM scoring_profiles WHERE id = ? AND owner = ?", (profile_id, owner))
+    else:
+        cur = conn.execute("DELETE FROM scoring_profiles WHERE id = ?", (profile_id,))
     conn.commit()
     return cur.rowcount
 
 
-# --- OAuth 토큰 / 인벤토리 (v2 Phase 3) ---
-def save_token(conn, membership_id, membership_type, access, refresh, expires_at) -> None:
+# --- 사용자별 빌더 상태 (위시리스트 롤 + 활성 프로필) ---
+def get_user_state(conn: sqlite3.Connection, owner: str) -> Optional[sqlite3.Row]:
+    return conn.execute(
+        "SELECT json, updated_at FROM user_state WHERE owner = ?", (owner,)
+    ).fetchone()
+
+
+def upsert_user_state(conn: sqlite3.Connection, owner: str, json_str: str, updated_at: str) -> None:
     conn.execute(
-        """INSERT OR REPLACE INTO oauth_tokens
-           (membership_id, membership_type, access_token, refresh_token, expires_at)
-           VALUES (?,?,?,?,?)""",
-        (membership_id, membership_type, access, refresh, expires_at),
+        "INSERT OR REPLACE INTO user_state (owner, json, updated_at) VALUES (?,?,?)",
+        (owner, json_str, updated_at),
+    )
+    conn.commit()
+
+
+# --- OAuth 토큰 / 인벤토리 (v2 Phase 3) ---
+def save_token(conn, membership_id, membership_type, access, refresh, expires_at, display_name=None) -> None:
+    # display_name 미전달(리프레시 등) 시 기존 값 보존.
+    conn.execute(
+        """INSERT INTO oauth_tokens
+           (membership_id, membership_type, access_token, refresh_token, expires_at, display_name)
+           VALUES (?,?,?,?,?,?)
+           ON CONFLICT(membership_id) DO UPDATE SET
+             membership_type=excluded.membership_type,
+             access_token=excluded.access_token,
+             refresh_token=excluded.refresh_token,
+             expires_at=excluded.expires_at,
+             display_name=COALESCE(excluded.display_name, oauth_tokens.display_name)""",
+        (membership_id, membership_type, access, refresh, expires_at, display_name),
     )
     conn.commit()
 

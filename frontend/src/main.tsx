@@ -2,15 +2,18 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { LanguageProvider } from "./i18n";
+import { AuthProvider } from "./auth";
 import { WishlistProvider } from "./store";
 import "./theme.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <LanguageProvider>
-      <WishlistProvider>
-        <App />
-      </WishlistProvider>
+      <AuthProvider>
+        <WishlistProvider>
+          <App />
+        </WishlistProvider>
+      </AuthProvider>
     </LanguageProvider>
   </React.StrictMode>,
 );

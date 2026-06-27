@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { DeriveContext, DeriveResult, ScoringProfile } from "../api";
 import { useLanguage, weaponTypeLabel } from "../i18n";
+import { useAuth } from "../auth";
 import { useWishlist } from "../store";
 
 const STAT_KEYS = ["handling", "range", "stability", "reload", "aim_assist", "impact", "recoil", "zoom"];
@@ -29,6 +30,7 @@ function blankProfile(): ScoringProfile {
 
 export function ScoringProfileEditor() {
   const { t } = useLanguage();
+  const { loggedIn, login } = useAuth();
   const { activeProfile, setActiveProfile, rolls } = useWishlist();
   const [profiles, setProfiles] = useState<ScoringProfile[]>([]);
   const [draft, setDraft] = useState<ScoringProfile>(activeProfile ?? blankProfile());
@@ -97,11 +99,16 @@ export function ScoringProfileEditor() {
   }
 
   async function save() {
-    const saved = await api.saveProfile(draft);
-    setDraft(saved);
-    setActiveProfile(saved);
-    refresh();
-    setStatus(`${t.scoring.saved}: ${saved.name}`);
+    if (!loggedIn) { setStatus(t.app.loginHint); return; }
+    try {
+      const saved = await api.saveProfile(draft);
+      setDraft(saved);
+      setActiveProfile(saved);
+      refresh();
+      setStatus(`${t.scoring.saved}: ${saved.name}`);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : String(e));
+    }
   }
 
   async function del(id?: string | null) {
@@ -142,6 +149,12 @@ export function ScoringProfileEditor() {
       <div>
         <div className="panel">
           <div className="panel-title">{t.scoring.profileEditor}</div>
+          {!loggedIn && (
+            <div className="login-gate">
+              <span>{t.app.loginHint}</span>
+              <button className="btn primary sm" onClick={login}>{t.vault.login}</button>
+            </div>
+          )}
           <input
             className="text-input"
             value={draft.name}

@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import config, db, repo
 from .db import get_conn
 from .models import StatusOut
-from .routers import auth, inventory, meta, scoring, weapons, wishlist
+from .routers import auth, inventory, meta, scoring, state, weapons, wishlist
 
 app = FastAPI(
     title="DIM Wishlist Maker Hub API",
@@ -36,6 +36,7 @@ app.include_router(meta.router)
 app.include_router(scoring.router)
 app.include_router(auth.router)
 app.include_router(inventory.router)
+app.include_router(state.router)
 
 
 @app.on_event("startup")

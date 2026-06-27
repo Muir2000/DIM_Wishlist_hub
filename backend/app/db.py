@@ -99,6 +99,14 @@ CREATE TABLE IF NOT EXISTS scoring_profiles (
     id         TEXT PRIMARY KEY,
     name       TEXT,
     json       TEXT,
+    owner      TEXT,                -- 소유 사용자(Bungie membership_id). NULL=레거시(미표시)
+    updated_at TEXT
+);
+
+-- 사용자별 빌더 상태(위시리스트 롤 + 활성 프로필). owner=membership_id.
+CREATE TABLE IF NOT EXISTS user_state (
+    owner      TEXT PRIMARY KEY,
+    json       TEXT,                -- {rolls, title, description, activeProfileId}
     updated_at TEXT
 );
 
@@ -108,7 +116,8 @@ CREATE TABLE IF NOT EXISTS oauth_tokens (
     membership_type INTEGER,
     access_token    TEXT,
     refresh_token   TEXT,
-    expires_at      TEXT
+    expires_at      TEXT,
+    display_name    TEXT
 );
 CREATE TABLE IF NOT EXISTS inventory_items (
     item_instance_id TEXT PRIMARY KEY,
@@ -127,6 +136,7 @@ CREATE INDEX IF NOT EXISTS idx_rs_weapon   ON roll_stats(weapon_hash);
 CREATE INDEX IF NOT EXISTS idx_ws_weapon   ON weapon_stats(weapon_hash);
 CREATE INDEX IF NOT EXISTS idx_ps_plug     ON perk_stats(plug_hash);
 CREATE INDEX IF NOT EXISTS idx_inv_member  ON inventory_items(membership_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_owner ON scoring_profiles(owner);
 """
 
 # 시작 시 결정되는 활성 DB 정보
@@ -161,6 +171,15 @@ def apply_schema(conn: sqlite3.Connection) -> None:
     ):
         try:
             conn.execute(f"ALTER TABLE weapons ADD COLUMN {col} {decl}")
+        except sqlite3.OperationalError:
+            pass
+    # 멀티유저: scoring_profiles 소유자, oauth_tokens 표시명 추가(구 DB 보강)
+    for table, col, decl in (
+        ("scoring_profiles", "owner", "TEXT"),
+        ("oauth_tokens", "display_name", "TEXT"),
+    ):
+        try:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
         except sqlite3.OperationalError:
             pass
     conn.commit()
@@ -264,6 +283,7 @@ def init_active_db() -> Tuple[Path, str, str]:
     if _has_weapons(config.DB_PATH):
         conn = connect(config.DB_PATH)
         try:
+            apply_schema(conn)  # 멀티유저 등 신규 테이블/컬럼 보강(idempotent)
             row = conn.execute(
                 "SELECT version, source FROM manifest_meta WHERE id=1"
             ).fetchone()

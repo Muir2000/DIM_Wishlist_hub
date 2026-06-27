@@ -17,6 +17,9 @@ export const ko: Messages = {
     manifest: "매니페스트",
     weapons: "무기",
     settings: "설정",
+    account: "계정",
+    logout: "로그아웃",
+    loginHint: "Bungie 로그인하면 본인 프로필·위시리스트가 따로 저장됩니다.",
     tabs: {
       builder: "빌더",
       scoring: "점수 기준",

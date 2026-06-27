@@ -13,17 +13,23 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 
-from .. import config, labels, repo, scoring, serialize
+from .. import config, labels, repo, scoring, serialize, session
 from ..compiler import RollRequest, compile_wishlist
 from ..db import get_conn
 from ..models import CleanupItem, InventoryPerk, InventoryStatus, ScoringProfile
+from ..session import require_membership
 from .auth import access_token, oauth_configured
 
 router = APIRouter(tags=["inventory (고도화)"])
 
 PROFILE_COMPONENTS = "102,201,205,300,304,305"
+
+
+def _inv_key(request: Request) -> str:
+    """인벤토리 스코프 키: 로그인 멤버십, 비로그인은 공용 데모('DEMO')."""
+    return session.current_membership(request) or "DEMO"
 
 
 def _stat_hash_map(conn) -> Dict[int, str]:
@@ -45,13 +51,13 @@ def _collect_items(resp: dict) -> List[dict]:
 
 
 @router.get("/me/status", response_model=InventoryStatus)
-def me_status(conn: sqlite3.Connection = Depends(get_conn)):
-    tok = repo.get_token(conn)
-    inv = repo.get_inventory(conn, tok["membership_id"]) if tok else []
+def me_status(request: Request, conn: sqlite3.Connection = Depends(get_conn)):
+    mem = session.current_membership(request)
+    inv = repo.get_inventory(conn, mem or "DEMO")
     synced = inv[0]["synced_at"] if inv else None
     return InventoryStatus(
-        connected=bool(tok),
-        membership_id=tok["membership_id"] if tok else None,
+        connected=bool(mem),                  # 로그인(세션) 여부
+        membership_id=mem,
         item_count=len(inv),
         synced_at=synced,
         oauth_configured=oauth_configured(),
@@ -60,10 +66,11 @@ def me_status(conn: sqlite3.Connection = Depends(get_conn)):
 
 
 @router.post("/me/sync", response_model=InventoryStatus)
-def me_sync(conn: sqlite3.Connection = Depends(get_conn)):
+def me_sync(request: Request, conn: sqlite3.Connection = Depends(get_conn),
+            me: str = Depends(require_membership)):
     if not oauth_configured():
         raise HTTPException(status_code=501, detail="Bungie OAuth 미설정 (.env 의 CLIENT_ID/SECRET).")
-    tok = access_token(conn)
+    tok = access_token(conn, me)
     if not tok:
         raise HTTPException(status_code=401, detail="로그인이 필요합니다. /auth/bungie/login")
 
@@ -101,12 +108,13 @@ def me_sync(conn: sqlite3.Connection = Depends(get_conn)):
         rows.append((iid, ih, json.dumps(plugs), json.dumps(st), power, now))
 
     repo.replace_inventory(conn, tok["membership_id"], rows)
-    return me_status(conn)
+    return me_status(request, conn)
 
 
 @router.post("/me/demo-inventory", response_model=InventoryStatus)
-def me_demo_inventory(conn: sqlite3.Connection = Depends(get_conn)):
-    """OAuth 없이 정리 UI 를 체험하기 위한 합성 창고(시드 무기 기반)."""
+def me_demo_inventory(request: Request, conn: sqlite3.Connection = Depends(get_conn)):
+    """OAuth 없이 정리 UI 를 체험하기 위한 합성 창고(시드 무기 기반). 비로그인=공용 DEMO."""
+    mem = _inv_key(request)
     now = datetime.now(timezone.utc).isoformat()
     rows = []
     for w in conn.execute("SELECT item_hash FROM weapons").fetchall():
@@ -124,15 +132,13 @@ def me_demo_inventory(conn: sqlite3.Connection = Depends(get_conn)):
             st = dict(base)
             st["handling"] = st.get("handling", 50) + hmod
             rows.append((f"DEMO-{wh}-{tag}", wh, json.dumps(perks), json.dumps(st), 1800, now))
-    repo.replace_inventory(conn, "DEMO", rows)
-    return InventoryStatus(connected=True, membership_id="DEMO", item_count=len(rows),
+    repo.replace_inventory(conn, mem, rows)
+    return InventoryStatus(connected=mem != "DEMO", membership_id=mem, item_count=len(rows),
                            synced_at=now, oauth_configured=oauth_configured(),
                            login_url="/api/auth/bungie/login" if oauth_configured() else None)
 
 
-def _score_inventory(conn, profile: Optional[dict], context: Optional[dict]) -> List[CleanupItem]:
-    tok = repo.get_token(conn)
-    membership = tok["membership_id"] if tok else None
+def _score_inventory(conn, membership: str, profile: Optional[dict], context: Optional[dict]) -> List[CleanupItem]:
     base_map = repo.enhanced_base_map(conn)  # 강화 퍽 → 기본 퍽
     out: List[CleanupItem] = []
     for row in repo.get_inventory(conn, membership):
@@ -176,24 +182,26 @@ def _score_inventory(conn, profile: Optional[dict], context: Optional[dict]) -> 
 
 @router.post("/me/cleanup", response_model=List[CleanupItem])
 def me_cleanup(
+    request: Request,
     profile: Optional[ScoringProfile] = Body(default=None),
     wishlist_rolls: List[dict] = Body(default=[]),
     conn: sqlite3.Connection = Depends(get_conn),
 ):
     """창고 무기를 점수순(낮은 순=정리 후보 우선)으로 채점."""
     ctx = scoring.derive_context(conn, wishlist_rolls)
-    return _score_inventory(conn, profile.model_dump() if profile else None, ctx)
+    return _score_inventory(conn, _inv_key(request), profile.model_dump() if profile else None, ctx)
 
 
 @router.post("/me/export-trashlist")
 def me_export_trashlist(
+    request: Request,
     profile: Optional[ScoringProfile] = Body(default=None),
     wishlist_rolls: List[dict] = Body(default=[]),
     conn: sqlite3.Connection = Depends(get_conn),
 ) -> Dict[str, Any]:
     """정리 후보(trash) 롤들을 DIM 트래시리스트(.txt)로. compiler 재사용."""
     ctx = scoring.derive_context(conn, wishlist_rolls)
-    items = _score_inventory(conn, profile.model_dump() if profile else None, ctx)
+    items = _score_inventory(conn, _inv_key(request), profile.model_dump() if profile else None, ctx)
     base_map = repo.enhanced_base_map(conn)
     rolls: List[RollRequest] = []
     for it in items:

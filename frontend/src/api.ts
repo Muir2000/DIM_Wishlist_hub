@@ -1,5 +1,23 @@
 // 백엔드 API 클라이언트 + 타입. 기본 베이스는 Vite 프록시('/api' -> :8000).
+import type { SavedRoll } from "./store";
+
 const BASE = (import.meta.env.VITE_API_BASE as string) ?? "/api";
+
+// 로그인 시작용 절대 경로(브라우저 네비게이션 — fetch 아님).
+export const LOGIN_URL = `${BASE}/auth/bungie/login`;
+
+export interface AuthMe {
+  connected: boolean;
+  membership_id?: string | null;
+  name?: string | null;
+}
+
+export interface UserState {
+  rolls: SavedRoll[];
+  title: string;
+  description: string;
+  activeProfileId: string | null;
+}
 
 export interface Perk {
   plug_hash: number;
@@ -236,8 +254,9 @@ export interface TopWeapon {
   total: number;
 }
 
+// credentials: "include" — 세션 쿠키(dimhub_session)를 항상 동봉(개발 교차출처 대비).
 async function get<T>(path: string): Promise<T> {
-  const r = await fetch(BASE + path);
+  const r = await fetch(BASE + path, { credentials: "include" });
   if (!r.ok) {
     // 백엔드 detail(예: 검색 쿼리 오류 메시지)을 우선 노출
     let detail = "";
@@ -247,14 +266,23 @@ async function get<T>(path: string): Promise<T> {
   return r.json();
 }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+async function send<T>(method: string, path: string, body?: unknown): Promise<T> {
   const r = await fetch(BASE + path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    method,
+    credentials: "include",
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(`POST ${path} -> ${r.status}`);
+  if (!r.ok) {
+    let detail = "";
+    try { detail = (await r.json())?.detail ?? ""; } catch { /* ignore */ }
+    throw new Error(detail || `${method} ${path} -> ${r.status}`);
+  }
   return r.json();
+}
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  return send<T>("POST", path, body);
 }
 
 const searchHelpers = {
@@ -303,9 +331,15 @@ export const api = {
 
   // --- v2 점수화 ---
   listProfiles: () => get<ScoringProfile[]>("/scoring-profiles"),
+  getProfile: (id: string) => get<ScoringProfile>(`/scoring-profiles/${id}`),
   saveProfile: (p: ScoringProfile) => post<ScoringProfile>("/scoring-profiles", p),
-  deleteProfile: (id: string) =>
-    fetch(`${BASE}/scoring-profiles/${id}`, { method: "DELETE" }).then((r) => r.json()),
+  deleteProfile: (id: string) => send<{ deleted: string }>("DELETE", `/scoring-profiles/${id}`),
+
+  // --- 인증 / 사용자 상태 (멀티유저) ---
+  me: () => get<AuthMe>("/auth/me"),
+  logout: () => post<{ ok: boolean }>("/auth/logout", {}),
+  loadState: () => get<UserState>("/me/state"),
+  saveState: (s: UserState) => send<{ ok: boolean }>("PUT", "/me/state", s),
   score: (body: {
     weapon_hash: number;
     perks: number[];

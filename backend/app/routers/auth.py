@@ -16,10 +16,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 
-from .. import config, repo
+from .. import config, repo, session
 from ..db import get_conn
 
 router = APIRouter(tags=["auth (고도화)"])
@@ -110,13 +110,42 @@ def bungie_callback(
         if not primary:
             raise HTTPException(status_code=400, detail="Destiny 멤버십을 찾을 수 없습니다.")
 
-    repo.save_token(conn, primary["membershipId"], primary["membershipType"], access, refresh, expires_at)
-    return RedirectResponse(f"{config.FRONTEND_URL}/?connected=1")
+    mid = primary["membershipId"]
+    name = primary.get("bungieGlobalDisplayName") or primary.get("displayName")
+    repo.save_token(conn, mid, primary["membershipType"], access, refresh, expires_at, display_name=name)
+
+    # 세션 쿠키 발급 → 이후 요청이 이 사용자로 식별된다.
+    resp = RedirectResponse(f"{config.FRONTEND_URL}/?connected=1")
+    resp.set_cookie(
+        key=session.COOKIE_NAME, value=session.sign(mid),
+        max_age=session.COOKIE_MAX_AGE, httponly=True, samesite="lax",
+        secure=config.SESSION_COOKIE_SECURE, path="/",
+    )
+    return resp
 
 
-def access_token(conn: sqlite3.Connection) -> Optional[sqlite3.Row]:
+@router.get("/auth/me")
+def auth_me(request: Request, conn: sqlite3.Connection = Depends(get_conn)):
+    """현재 세션의 로그인 상태 + 표시명."""
+    mid = session.current_membership(request)
+    if not mid:
+        return {"connected": False, "membership_id": None, "name": None}
+    row = repo.get_token(conn, mid)
+    name = (row["display_name"] if row and "display_name" in row.keys() else None)
+    return {"connected": True, "membership_id": mid, "name": name}
+
+
+@router.post("/auth/logout")
+def auth_logout():
+    """세션 쿠키 삭제(서버 토큰은 유지 — 재로그인 시 재사용)."""
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie(session.COOKIE_NAME, path="/")
+    return resp
+
+
+def access_token(conn: sqlite3.Connection, membership_id: Optional[str] = None) -> Optional[sqlite3.Row]:
     """저장된 토큰 반환(만료 시 refresh — Confidential 만). 없으면 None."""
-    row = repo.get_token(conn)
+    row = repo.get_token(conn, membership_id)
     if not row:
         return None
     try:

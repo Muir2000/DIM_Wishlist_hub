@@ -8,6 +8,7 @@ import { MetaDashboard } from "./components/MetaDashboard";
 import { ScoringProfileEditor } from "./components/ScoringProfileEditor";
 import { InventoryCleanup } from "./components/InventoryCleanup";
 import { LANGUAGES, useLanguage, type LanguageCode } from "./i18n";
+import { useAuth } from "./auth";
 
 type TabKey = "builder" | "meta" | "scoring" | "vault";
 
@@ -15,6 +16,7 @@ const TABS: TabKey[] = ["builder", "scoring", "vault", "meta"];
 
 export default function App() {
   const { language, setLanguage, t } = useLanguage();
+  const { me, loggedIn, login, logout } = useAuth();
   const [status, setStatus] = useState<Status | null>(null);
   const [tab, setTab] = useState<TabKey>("builder");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -87,6 +89,19 @@ export default function App() {
               ))}
             </select>
           </label>
+
+          <div className="drawer-setting account">
+            <span>{t.app.account}</span>
+            {loggedIn ? (
+              <span className="account-actions">
+                <span className="account-name">{me?.name ?? me?.membership_id}</span>
+                <button className="btn ghost sm" onClick={() => { logout(); }}>{t.app.logout}</button>
+              </span>
+            ) : (
+              <button className="btn primary sm" onClick={login}>{t.vault.login}</button>
+            )}
+          </div>
+          {!loggedIn && <div className="drawer-login-hint">{t.app.loginHint}</div>}
         </div>
 
         {status && (
