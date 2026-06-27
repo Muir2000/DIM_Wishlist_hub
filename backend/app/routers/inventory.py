@@ -43,6 +43,13 @@ def _variant_hashes(conn, weapon_hash: int) -> set:
     return {r["item_hash"] for r in rows} or {weapon_hash}
 
 
+def _global_kind(conn, plug_hash) -> Optional[str]:
+    """어느 무기에서든 이 퍽의 열종류(barrel/magazine/trait/origin). 선택 무기 풀에 없을 때 보조."""
+    r = conn.execute(
+        "SELECT column_kind FROM weapon_perks WHERE plug_hash = ? LIMIT 1", (plug_hash,)).fetchone()
+    return r["column_kind"] if r else None
+
+
 def _stat_hash_map(conn) -> Dict[int, str]:
     return {r["stat_hash"]: r["key"] for r in repo.stat_defs(conn)}
 
@@ -156,29 +163,38 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
     for row in repo.get_inventory(conn, membership):
         if weapon_hashes is not None and row["item_hash"] not in weapon_hashes:
             continue  # 특정 무기(변형 그룹)만 — 빌더 보유 롤 표시용
-        plugs = json.loads(row["plug_hashes"] or "[]")
-        # 강화 퍽은 기본 퍽으로 정규화(풀은 base 만 보관)
-        plugs = [base_map.get(p, p) for p in plugs]
+        raw_plugs = json.loads(row["plug_hashes"] or "[]")
+        norm_plugs = [base_map.get(p, p) for p in raw_plugs]  # 강화→기본 정규화(점수 계산용)
         stats = json.loads(row["stats"] or "{}")
         w = repo.get_weapon(conn, row["item_hash"])
         if not w:
             continue
-        # 인스턴스 퍽 중 이 무기의 랜덤롤 퍽(weapon_perks)만 추림 → 점수/트래시리스트에 사용
         kind_map = {wp["plug_hash"]: wp["column_kind"] for wp in conn.execute(
             "SELECT plug_hash, column_kind FROM weapon_perks WHERE weapon_hash = ?",
             (row["item_hash"],)).fetchall()}
-        roll_perks = [p for p in plugs if p in kind_map]
-        res = scoring.score_roll(conn, row["item_hash"], roll_perks, profile,
+        # 점수: 이 무기 풀(weapon_perks)에 매칭되는 퍽만 사용
+        score_perks = [p for p in norm_plugs if p in kind_map]
+        res = scoring.score_roll(conn, row["item_hash"], score_perks, profile,
                                  stats=stats or None, context=context)
+        # 표시: 장착된 실제 퍽 전부. perks 테이블에 있으면 롤 퍽(코스메틱/마스터워크/인트린식은
+        # ingest 에서 제외되어 미존재). 강화 퍽도 원본 해시 그대로 보여준다(실제 장착 반영).
         perk_names = []
-        for ph in roll_perks:
+        seen = set()
+        for ph in raw_plugs:
+            if ph in seen:
+                continue
             pr = conn.execute("SELECT name_ko, name_en, icon FROM perks WHERE plug_hash = ?", (ph,)).fetchone()
+            if not pr:
+                continue
+            seen.add(ph)
+            base = base_map.get(ph, ph)
+            kind = kind_map.get(ph) or kind_map.get(base) or _global_kind(conn, base)
             perk_names.append(InventoryPerk(
                 plug_hash=ph,
-                name=(pr["name_ko"] or pr["name_en"]) if pr else None,
-                name_en=pr["name_en"] if pr else None,
-                icon=serialize.icon_url(pr["icon"]) if pr else None,
-                column_kind=kind_map.get(ph),
+                name=(pr["name_ko"] or pr["name_en"]),
+                name_en=pr["name_en"],
+                icon=serialize.icon_url(pr["icon"]),
+                column_kind=kind,
             ))
         out.append(CleanupItem(
             item_instance_id=row["item_instance_id"], item_hash=row["item_hash"],
