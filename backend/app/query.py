@@ -285,7 +285,7 @@ def compile_query(text: str) -> SQL:
 
 
 # 프론트 치트시트/도움말
-HELP = {
+HELP_EN = {
     "operators": ["and (implicit)", "or", "not / -", "( )"],
     "keywords": [
         {"token": "is:<type/element/slot/rarity/ammo>", "예": "is:handcannon, is:solar, is:exotic, is:adept"},
@@ -303,3 +303,29 @@ HELP = {
         'frame:precision stat:handling:>=45',
     ],
 }
+
+HELP_KO = {
+    "operators": ["and (암묵)", "or", "not / -", "( )"],
+    "keywords": [
+        {"token": "is:<종류/속성/슬롯/등급/탄약>", "예": "is:핸드캐논, is:solar, is:exotic, is:adept"},
+        {"token": 'perkname:"이름"', "예": 'perkname:"무법자"'},
+        {"token": "stat:<키>:<조건>", "예": "stat:range:>=50, stat:rpm:180, stat:handling:40-60"},
+        {"token": "season:<조건>", "예": "season:5, season:>=20"},
+        {"token": "frame:<텍스트>", "예": "frame:정밀"},
+        {"token": "origin:<텍스트>", "예": "origin:대장간"},
+        {"token": "name:<텍스트> / 맨텍스트", "예": "name:용광로"},
+    ],
+    "examples": [
+        'is:핸드캐논 is:solar stat:range:>=50',
+        'is:파동소총 -perkname:"무법자" season:>=23',
+        '(is:전기 or is:공허) is:exotic',
+        'frame:정밀 stat:handling:>=45',
+    ],
+}
+
+# 기본은 한국어(앱 기본 언어와 일치). lang="en" 이면 영어 치트시트.
+HELP = HELP_KO
+
+
+def get_help(lang: str = "ko") -> dict:
+    return HELP_EN if lang == "en" else HELP_KO

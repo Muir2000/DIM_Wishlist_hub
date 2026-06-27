@@ -115,9 +115,9 @@ def count_weapons(
 
 
 @router.get("/search/help", tags=["weapons"])
-def search_help() -> Dict[str, Any]:
-    """텍스트 쿼리 지원 토큰·예시(프론트 치트시트)."""
-    return query_lang.HELP
+def search_help(lang: str = Query("ko", description="치트시트 언어 (ko|en)")) -> Dict[str, Any]:
+    """텍스트 쿼리 지원 토큰·예시(프론트 치트시트). lang 으로 한/영 선택."""
+    return query_lang.get_help(lang)
 
 
 @router.get("/filters", tags=["weapons"])

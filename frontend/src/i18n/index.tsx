@@ -30,10 +30,7 @@ function initialLanguage(): LanguageCode {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === "en" || saved === "ko") return saved;
   } catch { /* ignore */ }
-  // 저장값이 없으면 브라우저 언어로 추정(영어권만 en, 그 외 기본 ko).
-  try {
-    if (navigator.language && navigator.language.toLowerCase().startsWith("en")) return "en";
-  } catch { /* ignore */ }
+  // 저장된 선택이 없으면 항상 한국어 기본.
   return "ko";
 }
 

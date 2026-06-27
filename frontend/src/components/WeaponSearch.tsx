@@ -171,8 +171,9 @@ export function WeaponSearch({
   }, [showFilters]);
 
   useEffect(() => {
-    if (showHelp && !help) api.searchHelp().then(setHelp).catch(() => setHelp(null));
-  }, [showHelp, help]);
+    // 도움말 패널이 열려 있을 때 현재 언어로 치트시트 조회(언어 전환 시 재요청).
+    if (showHelp) api.searchHelp(language).then(setHelp).catch(() => setHelp(null));
+  }, [showHelp, language]);
 
   const statFilterCount = Object.values(statFilters).filter((v) => v.min || v.max).length;
   const activeFilterCount =

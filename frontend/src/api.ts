@@ -291,7 +291,7 @@ export const api = {
   // 컨텍스트 인지 패싯 — 현재 검색/필터 기준으로 가용 값+갯수
   filters: (q = "", filters: WeaponFilters = {}) =>
     get<FilterFacets>(`/filters?${searchHelpers.searchParams(q, filters).toString()}`),
-  searchHelp: () => get<SearchHelp>("/search/help"),
+  searchHelp: (lang: string = "ko") => get<SearchHelp>(`/search/help?lang=${lang}`),
   weapon: (hash: number) => get<WeaponDetail>(`/weapons/${hash}`),
   searchPerks: (q: string) => get<PerkLite[]>(`/perks?q=${encodeURIComponent(q)}`),
   statDefs: () => get<StatDef[]>("/stat-defs"),

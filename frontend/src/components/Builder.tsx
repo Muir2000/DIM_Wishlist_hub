@@ -7,7 +7,7 @@ import { StatsPanel } from "./StatsPanel";
 import { WishlistPanel } from "./WishlistPanel";
 import { useWishlist } from "../store";
 
-const TAGS = ["PvE", "PvP", "GM", "Raid"];
+const TAGS = ["PvE", "PvP", "GM", "레이드"];
 
 export function Builder({ picked }: { picked: WeaponSummary | null }) {
   const { language, t } = useLanguage();
