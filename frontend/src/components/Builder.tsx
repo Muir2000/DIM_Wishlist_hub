@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { api, CLASS_COLOR, ELEM_VAR, RARITY_VAR } from "../api";
-import type { RollInput, ScoreResult, WeaponDetail, WeaponSummary } from "../api";
+import { api, inventoryApi, CLASS_COLOR, ELEM_VAR, RARITY_VAR } from "../api";
+import type { CleanupItem, RollInput, ScoreResult, WeaponDetail, WeaponSummary } from "../api";
 import { damageLabel, displayName, formatTemplate, seasonName, slotLabel, tierLabel, useLanguage, weaponTypeLabel } from "../i18n";
 import { PerkGrid } from "./PerkGrid";
 import { StatsPanel } from "./StatsPanel";
 import { WishlistPanel } from "./WishlistPanel";
+import { useAuth } from "../auth";
 import { useWishlist } from "../store";
 
 const TAGS = ["PvE", "PvP", "GM", "레이드"];
 
 export function Builder({ picked }: { picked: WeaponSummary | null }) {
   const { language, t } = useLanguage();
+  const { loggedIn } = useAuth();
   const { addRoll, activeProfile, rolls } = useWishlist();
   const [weapon, setWeapon] = useState<WeaponDetail | null>(null);
   const [selection, setSelection] = useState<Record<number, number[]>>({});
@@ -29,6 +31,7 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
     columnWeights: Record<string, number>;
     kinds: Record<number, string>;
   } | null>(null);
+  const [owned, setOwned] = useState<CleanupItem[]>([]);   // 로그인 유저가 보유한 이 무기 인스턴스
 
   const selectedPerks = Object.values(selection).flat();
   useEffect(() => {
@@ -77,6 +80,17 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
       .catch(() => { if (!cancelled) setPerkW(null); });
     return () => { cancelled = true; };
   }, [weapon, activeProfile, rolls]);
+
+  // 로그인 유저가 이 무기를 보유 중이면 인스턴스(퍽롤+점수)를 조회.
+  useEffect(() => {
+    if (!weapon || !loggedIn) { setOwned([]); return; }
+    let cancelled = false;
+    inventoryApi
+      .weaponRolls(weapon.item_hash, activeProfile, rolls.map((r) => r.input))
+      .then((list) => { if (!cancelled) setOwned(list); })
+      .catch(() => { if (!cancelled) setOwned([]); });
+    return () => { cancelled = true; };
+  }, [weapon, loggedIn, activeProfile, rolls]);
 
   function resetBuilder() {
     setSelection({});
@@ -247,6 +261,42 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
                 />
               </div>
             </div>
+
+            {loggedIn && owned.length > 0 && (
+              <div className="panel">
+                <div className="panel-title" style={{ marginTop: 0 }}>
+                  {t.builder.ownedRolls} ({owned.length})
+                </div>
+                {owned.map((it) => {
+                  const ocls = it.classification;
+                  const color = ocls ? CLASS_COLOR[ocls] : "var(--border-strong)";
+                  return (
+                    <div key={it.item_instance_id} className="owned-roll">
+                      <div className="owned-perks">
+                        {it.perks.length === 0 && <span className="hint">{t.vault.noPerks}</span>}
+                        {it.perks.map((p) => {
+                          const shape = p.column_kind === "barrel" || p.column_kind === "magazine" ? "square" : "circle";
+                          const label = displayName(p, language);
+                          return (
+                            <div key={p.plug_hash} className={`perk-icon ${shape}`} title={label}>
+                              {p.icon ? <img src={p.icon} alt="" loading="lazy" /> : (label?.[0] ?? "?")}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {it.score != null && (
+                        <div
+                          className="score-pill"
+                          style={{ color, border: `1px solid ${color}`, fontSize: 13, padding: "4px 10px" }}
+                        >
+                          {it.score}{ocls ? ` · ${t.scoring.classLabel[ocls as keyof typeof t.scoring.classLabel]}` : ""}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
       </div>

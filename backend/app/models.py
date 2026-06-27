@@ -197,6 +197,8 @@ class InventoryPerk(BaseModel):
     plug_hash: int
     name: Optional[str] = None
     name_en: Optional[str] = None
+    icon: Optional[str] = None
+    column_kind: Optional[str] = None   # barrel|magazine|trait|origin|intrinsic (아이콘 모양용)
 
 
 class CleanupItem(BaseModel):

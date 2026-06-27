@@ -109,6 +109,7 @@ export const ko: Messages = {
     trashHint: "트래시 롤: 음수 해시",
     notesPlaceholder: "메모 (#notes:) — 선택 사항",
     addToWishlist: "위시리스트에 추가",
+    ownedRolls: "보유 중인 롤 (내 창고)",
   },
   list: {
     title: "내 리스트",

@@ -106,6 +106,7 @@ export const en = {
     trashHint: "Trash roll: negative item hash",
     notesPlaceholder: "Notes (#notes:) - optional",
     addToWishlist: "Add to wishlist",
+    ownedRolls: "Owned rolls (your vault)",
   },
   list: {
     title: "My list",

@@ -138,10 +138,13 @@ def me_demo_inventory(request: Request, conn: sqlite3.Connection = Depends(get_c
                            login_url="/api/auth/bungie/login" if oauth_configured() else None)
 
 
-def _score_inventory(conn, membership: str, profile: Optional[dict], context: Optional[dict]) -> List[CleanupItem]:
+def _score_inventory(conn, membership: str, profile: Optional[dict], context: Optional[dict],
+                     weapon_hash: Optional[int] = None) -> List[CleanupItem]:
     base_map = repo.enhanced_base_map(conn)  # 강화 퍽 → 기본 퍽
     out: List[CleanupItem] = []
     for row in repo.get_inventory(conn, membership):
+        if weapon_hash is not None and row["item_hash"] != weapon_hash:
+            continue  # 특정 무기만(빌더 보유 롤 표시용)
         plugs = json.loads(row["plug_hashes"] or "[]")
         # 강화 퍽은 기본 퍽으로 정규화(풀은 base 만 보관)
         plugs = [base_map.get(p, p) for p in plugs]
@@ -150,18 +153,21 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
         if not w:
             continue
         # 인스턴스 퍽 중 이 무기의 랜덤롤 퍽(weapon_perks)만 추림 → 점수/트래시리스트에 사용
-        known = {wp["plug_hash"] for wp in conn.execute(
-            "SELECT plug_hash FROM weapon_perks WHERE weapon_hash = ?", (row["item_hash"],)).fetchall()}
-        roll_perks = [p for p in plugs if p in known]
+        kind_map = {wp["plug_hash"]: wp["column_kind"] for wp in conn.execute(
+            "SELECT plug_hash, column_kind FROM weapon_perks WHERE weapon_hash = ?",
+            (row["item_hash"],)).fetchall()}
+        roll_perks = [p for p in plugs if p in kind_map]
         res = scoring.score_roll(conn, row["item_hash"], roll_perks, profile,
                                  stats=stats or None, context=context)
         perk_names = []
         for ph in roll_perks:
-            pr = conn.execute("SELECT name_ko, name_en FROM perks WHERE plug_hash = ?", (ph,)).fetchone()
+            pr = conn.execute("SELECT name_ko, name_en, icon FROM perks WHERE plug_hash = ?", (ph,)).fetchone()
             perk_names.append(InventoryPerk(
                 plug_hash=ph,
                 name=(pr["name_ko"] or pr["name_en"]) if pr else None,
                 name_en=pr["name_en"] if pr else None,
+                icon=serialize.icon_url(pr["icon"]) if pr else None,
+                column_kind=kind_map.get(ph),
             ))
         out.append(CleanupItem(
             item_instance_id=row["item_instance_id"], item_hash=row["item_hash"],
@@ -178,6 +184,24 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
         ))
     out.sort(key=lambda x: (x.score if x.score is not None else 0))
     return out
+
+
+@router.post("/me/weapon-rolls", response_model=List[CleanupItem])
+def me_weapon_rolls(
+    request: Request,
+    weapon_hash: int = Body(...),
+    profile: Optional[ScoringProfile] = Body(default=None),
+    wishlist_rolls: List[dict] = Body(default=[]),
+    conn: sqlite3.Connection = Depends(get_conn),
+):
+    """로그인 사용자가 보유한 해당 무기 인스턴스 + 퍽롤·점수(빌더 표시용).
+    비로그인/미동기화면 빈 목록. 점수순(낮은 순=정리 후보 우선)."""
+    mem = session.current_membership(request)
+    if not mem:
+        return []
+    ctx = scoring.derive_context(conn, wishlist_rolls)
+    return _score_inventory(conn, mem, profile.model_dump() if profile else None, ctx,
+                            weapon_hash=weapon_hash)
 
 
 @router.post("/me/cleanup", response_model=List[CleanupItem])
