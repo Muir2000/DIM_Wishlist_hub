@@ -32,6 +32,17 @@ def _inv_key(request: Request) -> str:
     return session.current_membership(request) or "DEMO"
 
 
+def _variant_hashes(conn, weapon_hash: int) -> set:
+    """선택 무기와 같은 변형 그룹(복각/홀로포일/에이뎁트)의 item_hash 집합.
+    보유 인스턴스가 다른 시즌 변형이어도 '이 무기 보유'로 인식하기 위함."""
+    row = conn.execute("SELECT variant_group FROM weapons WHERE item_hash = ?", (weapon_hash,)).fetchone()
+    vg = row["variant_group"] if row else None
+    if not vg:
+        return {weapon_hash}
+    rows = conn.execute("SELECT item_hash FROM weapons WHERE variant_group = ?", (vg,)).fetchall()
+    return {r["item_hash"] for r in rows} or {weapon_hash}
+
+
 def _stat_hash_map(conn) -> Dict[int, str]:
     return {r["stat_hash"]: r["key"] for r in repo.stat_defs(conn)}
 
@@ -139,12 +150,12 @@ def me_demo_inventory(request: Request, conn: sqlite3.Connection = Depends(get_c
 
 
 def _score_inventory(conn, membership: str, profile: Optional[dict], context: Optional[dict],
-                     weapon_hash: Optional[int] = None) -> List[CleanupItem]:
+                     weapon_hashes: Optional[set] = None) -> List[CleanupItem]:
     base_map = repo.enhanced_base_map(conn)  # 강화 퍽 → 기본 퍽
     out: List[CleanupItem] = []
     for row in repo.get_inventory(conn, membership):
-        if weapon_hash is not None and row["item_hash"] != weapon_hash:
-            continue  # 특정 무기만(빌더 보유 롤 표시용)
+        if weapon_hashes is not None and row["item_hash"] not in weapon_hashes:
+            continue  # 특정 무기(변형 그룹)만 — 빌더 보유 롤 표시용
         plugs = json.loads(row["plug_hashes"] or "[]")
         # 강화 퍽은 기본 퍽으로 정규화(풀은 base 만 보관)
         plugs = [base_map.get(p, p) for p in plugs]
@@ -201,7 +212,7 @@ def me_weapon_rolls(
         return []
     ctx = scoring.derive_context(conn, wishlist_rolls)
     return _score_inventory(conn, mem, profile.model_dump() if profile else None, ctx,
-                            weapon_hash=weapon_hash)
+                            weapon_hashes=_variant_hashes(conn, weapon_hash))
 
 
 @router.post("/me/cleanup", response_model=List[CleanupItem])

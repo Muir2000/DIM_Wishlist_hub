@@ -264,8 +264,9 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
 
             {loggedIn && owned.length > 0 && (
               <div className="panel">
-                <div className="panel-title" style={{ marginTop: 0 }}>
-                  {t.builder.ownedRolls} ({owned.length})
+                <div className="panel-title owned-head" style={{ marginTop: 0 }}>
+                  {weapon.icon && <img className="owned-weapon-icon" src={weapon.icon} alt="" />}
+                  <span>{weaponName} · {t.builder.ownedRolls} ({owned.length})</span>
                 </div>
                 {owned.map((it) => {
                   const ocls = it.classification;
@@ -278,16 +279,19 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
                           const shape = p.column_kind === "barrel" || p.column_kind === "magazine" ? "square" : "circle";
                           const label = displayName(p, language);
                           return (
-                            <div key={p.plug_hash} className={`perk-icon ${shape}`} title={label}>
-                              {p.icon ? <img src={p.icon} alt="" loading="lazy" /> : (label?.[0] ?? "?")}
-                            </div>
+                            <span key={p.plug_hash} className="owned-perk" title={label}>
+                              <span className={`perk-icon ${shape}`}>
+                                {p.icon ? <img src={p.icon} alt="" loading="lazy" /> : (label?.[0] ?? "?")}
+                              </span>
+                              <span className="owned-perk-name">{label}</span>
+                            </span>
                           );
                         })}
                       </div>
                       {it.score != null && (
                         <div
                           className="score-pill"
-                          style={{ color, border: `1px solid ${color}`, fontSize: 13, padding: "4px 10px" }}
+                          style={{ color, border: `1px solid ${color}`, fontSize: 13, padding: "4px 10px", flexShrink: 0 }}
                         >
                           {it.score}{ocls ? ` · ${t.scoring.classLabel[ocls as keyof typeof t.scoring.classLabel]}` : ""}
                         </div>
