@@ -213,6 +213,49 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
     return out
 
 
+@router.get("/me/debug-rolls")
+def me_debug_rolls(
+    request: Request,
+    weapon_hash: Optional[int] = Query(default=None, description="특정 무기만(없으면 보유 인스턴스 앞 8개)"),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> Dict[str, Any]:
+    """진단용: 동기화된 원본 plug_hashes 와 perks/풀 매칭 상태를 그대로 노출.
+    퍽이 하나만 나오는 원인이 (1) 동기화 미수집인지 (2) 매칭 누락인지 구분하기 위함.
+    로그인 상태로 브라우저에서 열어 JSON 을 공유하면 진단 가능."""
+    mem = session.current_membership(request)
+    if not mem:
+        return {"error": "not logged in"}
+    base_map = repo.enhanced_base_map(conn)
+    hashes = _variant_hashes(conn, weapon_hash) if weapon_hash else None
+    out: List[Dict[str, Any]] = []
+    for row in repo.get_inventory(conn, mem):
+        if hashes is not None and row["item_hash"] not in hashes:
+            continue
+        raw = json.loads(row["plug_hashes"] or "[]")
+        pool = {wp["plug_hash"]: wp["column_kind"] for wp in conn.execute(
+            "SELECT plug_hash, column_kind FROM weapon_perks WHERE weapon_hash = ?",
+            (row["item_hash"],)).fetchall()}
+        plug_info = []
+        for ph in raw:
+            pr = conn.execute("SELECT name_ko, name_en, plug_category FROM perks WHERE plug_hash = ?",
+                              (ph,)).fetchone()
+            base = base_map.get(ph, ph)
+            plug_info.append({
+                "plug_hash": ph, "base": base,
+                "name": (pr["name_ko"] or pr["name_en"]) if pr else None,
+                "plug_category": pr["plug_category"] if pr else None,
+                "in_perks_table": bool(pr),
+                "in_weapon_pool": (ph in pool) or (base in pool),
+            })
+        out.append({
+            "instance": row["item_instance_id"], "item_hash": row["item_hash"],
+            "raw_plug_count": len(raw), "pool_size": len(pool), "plugs": plug_info,
+        })
+        if hashes is None and len(out) >= 8:
+            break
+    return {"membership": mem, "weapon_hashes": list(hashes) if hashes else None, "instances": out}
+
+
 @router.post("/me/weapon-rolls", response_model=List[CleanupItem])
 def me_weapon_rolls(
     request: Request,
