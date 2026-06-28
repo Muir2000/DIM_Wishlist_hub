@@ -368,13 +368,21 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
                           className="btn ghost sm owned-load"
                           title={t.builder.loadRoll}
                           onClick={() => {
-                            // 다중 퍽 전부: 열별 선택 가능 퍽(perk_columns) → 열당 OR. 없으면 장착 퍽.
+                            // 다중 퍽 전부: 열별 선택 가능 퍽(perk_columns) → 열당 OR.
+                            // 열 단위로 키 부여(열의 column_index 우선, 없으면 배열 순서) → 시즌 변형으로
+                            // column_index 가 null 인 퍽도 누락 없이 로드.
                             const cols: Record<string, number[]> = {};
-                            const src = it.perk_columns && it.perk_columns.length > 0
-                              ? it.perk_columns.flat()
-                              : it.perks;
-                            for (const p of src) {
-                              if (p.column_index != null) (cols[String(p.column_index)] ??= []).push(p.plug_hash);
+                            const pcols = (it.perk_columns ?? []).filter((c) => c.length > 0);
+                            if (pcols.length > 0) {
+                              pcols.forEach((col, ci) => {
+                                const key = col[0].column_index ?? ci;
+                                cols[String(key)] = col.map((p) => p.plug_hash);
+                              });
+                            } else {
+                              it.perks.forEach((p, i) => {
+                                const key = p.column_index ?? i;
+                                (cols[String(key)] ??= []).push(p.plug_hash);
+                              });
                             }
                             onLoadRoll(it.item_hash, cols, {
                               name: it.name, name_en: it.name_en, icon: it.icon,
