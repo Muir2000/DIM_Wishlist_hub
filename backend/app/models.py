@@ -201,6 +201,7 @@ class InventoryPerk(BaseModel):
     column_kind: Optional[str] = None   # barrel|magazine|trait|origin|intrinsic (아이콘 모양용)
     column_index: Optional[int] = None  # 열 위치(총열0/탄창1/특성1 2/특성2 3/기원…) — 컬럼 정렬용
     equipped: bool = False              # 이 인스턴스에 현재 장착된 퍽인지(열 다중 퍽 중 강조용)
+    points: Optional[int] = None        # 퍽 선호도 점수(weight×PERK_POINT_SCALE) — 신호 없으면 None
 
 
 class CleanupItem(BaseModel):
@@ -218,8 +219,10 @@ class CleanupItem(BaseModel):
     perks: List[InventoryPerk] = Field(default_factory=list)              # 장착 롤(평면)
     perk_columns: List[List[InventoryPerk]] = Field(default_factory=list)  # 열별 선택 가능 퍽(제작=다중)
     stats: Dict[str, float] = Field(default_factory=dict)
-    score: Optional[float] = None
+    score: Optional[float] = None                  # 현재 장착 롤 점수
     classification: Optional[str] = None
+    best_score: Optional[float] = None             # 열별 최선 퍽 선택 시 가능한 최고 점수(제작 리셰이프)
+    best_classification: Optional[str] = None
 
 
 class InventoryStatus(BaseModel):

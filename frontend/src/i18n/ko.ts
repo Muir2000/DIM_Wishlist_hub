@@ -110,6 +110,7 @@ export const ko: Messages = {
     notesPlaceholder: "메모 (#notes:) — 선택 사항",
     addToWishlist: "위시리스트에 추가",
     ownedRolls: "보유 중인 롤 (내 창고)",
+    bestRollHint: "이 사본에서 선택 가능한 퍽으로 낼 수 있는 최고 점수(리셰이프 등)",
   },
   list: {
     title: "내 리스트",

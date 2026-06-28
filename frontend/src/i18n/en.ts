@@ -107,6 +107,7 @@ export const en = {
     notesPlaceholder: "Notes (#notes:) - optional",
     addToWishlist: "Add to wishlist",
     ownedRolls: "Owned rolls (your vault)",
+    bestRollHint: "Best score achievable from this copy's selectable perks (e.g. by reshaping)",
   },
   list: {
     title: "My list",

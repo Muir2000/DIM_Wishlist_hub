@@ -245,6 +245,27 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
                 reusable = {}
         equipped_bases = {base_map.get(p, p) for p in raw_plugs}
         perk_columns = _perk_columns(conn, reusable, perk_names, col_map, base_map, equipped_bases)
+
+        # 다중 퍽 점수화: 퍽별 선호도(points) + 열별 최선 선택 시 최고 점수(best_score).
+        best_score = best_classification = None
+        all_bases = list({base_map.get(p.plug_hash, p.plug_hash) for col in perk_columns for p in col})
+        if all_bases:
+            weights, sig = scoring.perk_weight_map(conn, row["item_hash"], all_bases, profile, context=context)
+            if sig:
+                for col in perk_columns:
+                    for p in col:
+                        w = weights.get(base_map.get(p.plug_hash, p.plug_hash))
+                        p.points = round(w * scoring.PERK_POINT_SCALE) if w is not None else None
+                # 열별 최고 가중치 퍽 → 최선 롤 채점
+                best_perks = []
+                for col in perk_columns:
+                    if not col:
+                        continue
+                    bp = max(col, key=lambda p: weights.get(base_map.get(p.plug_hash, p.plug_hash), -9.0))
+                    best_perks.append(base_map.get(bp.plug_hash, bp.plug_hash))
+                br = scoring.score_roll(conn, row["item_hash"], best_perks, profile,
+                                        stats=stats or None, context=context)
+                best_score, best_classification = br["score"], br["classification"]
         out.append(CleanupItem(
             item_instance_id=row["item_instance_id"], item_hash=row["item_hash"],
             name=w["name_ko"] or w["name_en"] or str(row["item_hash"]),
@@ -257,6 +278,7 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
             tier=w["tier"],
             power=row["power"], perks=perk_names, perk_columns=perk_columns, stats=stats,
             score=res["score"], classification=res["classification"],
+            best_score=best_score, best_classification=best_classification,
         ))
     out.sort(key=lambda x: (x.score if x.score is not None else 0))
     return out

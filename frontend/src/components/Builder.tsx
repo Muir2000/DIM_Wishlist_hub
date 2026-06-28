@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, inventoryApi, CLASS_COLOR, ELEM_VAR, RARITY_VAR } from "../api";
+import { api, inventoryApi, CLASS_COLOR, ELEM_VAR, RARITY_VAR, perkTier, PERK_TIER_COLOR } from "../api";
 import type { CleanupItem, RollInput, ScoreResult, WeaponDetail, WeaponSummary } from "../api";
 import { damageLabel, displayName, formatTemplate, seasonName, slotLabel, tierLabel, useLanguage, weaponTypeLabel } from "../i18n";
 import { PerkGrid } from "./PerkGrid";
@@ -286,24 +286,42 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
                             {col.map((p) => {
                               const shape = p.column_kind === "barrel" || p.column_kind === "magazine" ? "square" : "circle";
                               const label = displayName(p, language);
+                              const tier = p.points != null && p.points !== 0 ? perkTier(p.points) : null;
+                              const tColor = tier ? PERK_TIER_COLOR[tier] : undefined;
                               return (
-                                <span key={p.plug_hash} className={`owned-perk ${p.equipped ? "on" : ""}`} title={label}>
+                                <span
+                                  key={p.plug_hash}
+                                  className={`owned-perk ${p.equipped ? "on" : ""}`}
+                                  title={p.points != null ? `${label} (${p.points > 0 ? "+" : ""}${p.points})` : label}
+                                  style={tColor ? { borderColor: tColor } : undefined}
+                                >
                                   <span className={`perk-icon ${shape}`}>
                                     {p.icon ? <img src={p.icon} alt="" loading="lazy" /> : (label?.[0] ?? "?")}
                                   </span>
                                   <span className="owned-perk-name">{label}</span>
+                                  {p.points != null && p.points !== 0 && (
+                                    <span className="owned-perk-pts" style={{ color: tColor }}>
+                                      {p.points > 0 ? "+" : ""}{p.points}
+                                    </span>
+                                  )}
                                 </span>
                               );
                             })}
                           </div>
                         ))}
                       </div>
-                      {it.score != null && (
-                        <div
-                          className="score-pill"
-                          style={{ color, border: `1px solid ${color}`, fontSize: 13, padding: "4px 10px", flexShrink: 0 }}
-                        >
-                          {it.score}{ocls ? ` · ${t.scoring.classLabel[ocls as keyof typeof t.scoring.classLabel]}` : ""}
+                      {(it.score != null || it.best_score != null) && (
+                        <div className="owned-scores" style={{ flexShrink: 0 }}>
+                          {it.score != null && (
+                            <div className="score-pill" style={{ color, border: `1px solid ${color}`, fontSize: 13, padding: "4px 10px" }}>
+                              {it.score}{ocls ? ` · ${t.scoring.classLabel[ocls as keyof typeof t.scoring.classLabel]}` : ""}
+                            </div>
+                          )}
+                          {it.best_score != null && it.best_score !== it.score && (
+                            <div className="owned-best" title={t.builder.bestRollHint}>
+                              ★ {it.best_score}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

@@ -374,6 +374,7 @@ export interface InvPerk {
   column_kind?: string | null;
   column_index?: number | null;
   equipped?: boolean;
+  points?: number | null;     // 퍽 선호도 점수(없으면 미표시)
 }
 
 export interface CleanupItem {
@@ -391,8 +392,10 @@ export interface CleanupItem {
   perks: InvPerk[];                 // 장착 롤(평면)
   perk_columns?: InvPerk[][];       // 열별 선택 가능 퍽(제작=다중)
   stats: Record<string, number>;
-  score?: number | null;
+  score?: number | null;            // 현재 장착 롤 점수
   classification?: string | null;
+  best_score?: number | null;       // 열별 최선 퍽 선택 시 최고 점수
+  best_classification?: string | null;
 }
 
 export const inventoryApi = {
