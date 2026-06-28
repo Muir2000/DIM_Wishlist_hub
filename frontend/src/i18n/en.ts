@@ -115,6 +115,8 @@ export const en = {
     tagScoresTitle: "Scores by tag",
     recommend: "Recommend",
     applyRecommended: "Auto-select the recommended perks for this tag",
+    bestRoll: "Best roll",
+    bestRollApply: "Auto-select the highest-scoring perk per column (active profile)",
   },
   list: {
     title: "My list",

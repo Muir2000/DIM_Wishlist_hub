@@ -156,6 +156,22 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
     });
   }
 
+  // 활성 프로필 가중치 기준 열별 최고(양수) 퍽 자동 선택 = 최적 롤.
+  function applyMaxRoll() {
+    if (!weapon || !perkW) return;
+    const sel: Record<number, number[]> = {};
+    for (const col of weapon.columns) {
+      let bestHash: number | null = null;
+      let bestW = 0;
+      for (const p of col.perks) {
+        const w = perkW.weights[p.plug_hash] ?? 0;
+        if (w > bestW) { bestW = w; bestHash = p.plug_hash; }
+      }
+      if (bestHash != null) sel[col.index] = [bestHash];
+    }
+    setSelection(sel);
+  }
+
   function toggleTag(tag: string) {
     setTags((prev) => (prev.includes(tag) ? prev.filter((x) => x !== tag) : [...prev, tag]));
   }
@@ -272,7 +288,13 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
             <div className="panel">
               <div className="panel-head">
                 <span className="panel-title" style={{ margin: 0 }}>{t.builder.perkSelection}</span>
-                <span className="panel-actions">{t.builder.multiPerkHint}</span>
+                <span className="panel-actions">
+                  {perkW?.signal && (
+                    <button className="btn ghost sm best-roll-btn" title={t.builder.bestRollApply}
+                            onClick={applyMaxRoll}>★ {t.builder.bestRoll}</button>
+                  )}
+                  {t.builder.multiPerkHint}
+                </span>
               </div>
 
               {weapon.stats && Object.keys(weapon.stats).length > 0 && (

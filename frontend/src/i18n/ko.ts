@@ -118,6 +118,8 @@ export const ko: Messages = {
     tagScoresTitle: "태그별 점수",
     recommend: "추천",
     applyRecommended: "이 태그의 추천 퍽 자동 선택",
+    bestRoll: "최적 롤",
+    bestRollApply: "활성 프로필 기준 열별 최고 점수 퍽 자동 선택",
   },
   list: {
     title: "내 리스트",
