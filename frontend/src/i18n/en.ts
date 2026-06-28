@@ -112,6 +112,9 @@ export const en = {
     copyHash: "Copy weapon ID (for DIM)",
     copyHashVault: "Copy your vault copy's weapon ID (for DIM)",
     copied: "Copied",
+    tagScoresTitle: "Scores by tag",
+    recommend: "Recommend",
+    applyRecommended: "Auto-select the recommended perks for this tag",
   },
   list: {
     title: "My list",

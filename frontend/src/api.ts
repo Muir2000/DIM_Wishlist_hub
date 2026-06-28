@@ -310,6 +310,16 @@ const searchHelpers = {
   },
 };
 
+export interface TagScore {
+  score: number | null;
+  classification: string | null;
+  recommended: Record<string, number[]>;   // 열index → [추천 base 퍽]
+}
+export interface TagScores {
+  overall: { score: number | null; classification: string | null };
+  tags: Record<string, TagScore>;           // "PvE" | "PvP" | "GM" | "레이드"
+}
+
 export const api = {
   status: () => get<Status>("/status"),
   searchWeapons: (q: string, filters: WeaponFilters = {}) => {
@@ -350,6 +360,12 @@ export const api = {
     profile_id?: string | null;
     wishlist_rolls?: RollInput[];
   }) => post<ScoreResult>("/score", body),
+  scoreTags: (body: {
+    weapon_hash: number;
+    perks: number[];
+    profile?: ScoringProfile | null;
+    wishlist_rolls?: RollInput[];
+  }) => post<TagScores>("/score/tags", body),
   deriveWeights: (body: { rolls?: RollInput[]; text?: string }) =>
     post<DeriveResult>("/scoring/derive-weights", body),
   perkWeights: (body: {

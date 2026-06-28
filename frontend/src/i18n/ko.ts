@@ -115,6 +115,9 @@ export const ko: Messages = {
     copyHash: "무기 고유번호 복사 (DIM용)",
     copyHashVault: "내 창고 사본의 무기 ID 복사 (DIM용)",
     copied: "복사됨",
+    tagScoresTitle: "태그별 점수",
+    recommend: "추천",
+    applyRecommended: "이 태그의 추천 퍽 자동 선택",
   },
   list: {
     title: "내 리스트",

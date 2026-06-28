@@ -123,6 +123,50 @@ def perk_weights(req: ScoreRequest, conn: sqlite3.Connection = Depends(get_conn)
     }
 
 
+TAG_SET = ["PvE", "PvP", "GM", "레이드"]   # 태그별 점수 대상(롤에 존재하는 것만 노출)
+
+
+@router.post("/score/tags")
+def score_tags(req: ScoreRequest, conn: sqlite3.Connection = Depends(get_conn),
+               me: str = Depends(current_membership)) -> Dict[str, Any]:
+    """종합 점수 + 태그(PvE/PvP/GM/레이드)별 점수·추천 퍽. 롤의 tags 로 필터링해 태그별 컨텍스트 도출.
+
+    반환: { overall:{score,classification},
+            tags:{ "PvE":{score,classification,recommended:{colIdx:[base_plug]}}, ... } }
+    """
+    prof = _resolve_profile(req, conn, me)
+    rolls = [r.model_dump() for r in req.wishlist_rolls]
+
+    ctx_all = scoring.derive_context(conn, rolls)
+    overall = scoring.score_roll(conn, req.weapon_hash, req.perks, prof, context=ctx_all)
+
+    present = {tg for r in rolls for tg in (r.get("tags") or [])}
+    plug_cols, _weapon_cols = scoring.weapon_columns(conn, req.weapon_hash)
+    pool_hashes = list(plug_cols.keys())
+
+    tags_out: Dict[str, Any] = {}
+    for tag in TAG_SET:
+        if tag not in present:
+            continue
+        filtered = [r for r in rolls if tag in (r.get("tags") or [])]
+        ctx = scoring.derive_context(conn, filtered)
+        res = scoring.score_roll(conn, req.weapon_hash, req.perks, prof, context=ctx)
+        weights, _sig = scoring.perk_weight_map(conn, req.weapon_hash, pool_hashes, prof, context=ctx)
+        # 열별 최고 가중치 퍽(양수만) = 추천. base 해시라 빌더 그리드와 매칭.
+        best: Dict[int, tuple] = {}
+        for plug, (ci, _kind) in plug_cols.items():
+            w = weights.get(plug, 0.0)
+            cur = best.get(ci)
+            if cur is None or w > cur[0]:
+                best[ci] = (w, plug)
+        recommended = {str(ci): [plug] for ci, (w, plug) in best.items() if w > 0}
+        tags_out[tag] = {"score": res["score"], "classification": res["classification"],
+                         "recommended": recommended}
+
+    return {"overall": {"score": overall["score"], "classification": overall["classification"]},
+            "tags": tags_out}
+
+
 def _text_to_rolls(text: str):
     """DIM 위시리스트 텍스트 → 컨텍스트 도출용 롤(무기 해시 포함). (rolls, parsed_count)"""
     rolls = []

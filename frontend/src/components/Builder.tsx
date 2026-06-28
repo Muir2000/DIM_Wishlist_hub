@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, inventoryApi, CLASS_COLOR, ELEM_VAR, RARITY_VAR, perkTier, PERK_TIER_COLOR } from "../api";
-import type { CleanupItem, RollInput, ScoreResult, WeaponDetail, WeaponSummary } from "../api";
+import type { CleanupItem, RollInput, ScoreResult, TagScores, WeaponDetail, WeaponSummary } from "../api";
 import { damageLabel, displayName, formatTemplate, seasonName, slotLabel, tierLabel, useLanguage, weaponTypeLabel } from "../i18n";
 import { PerkGrid } from "./PerkGrid";
 import { StatsPanel } from "./StatsPanel";
@@ -37,6 +37,7 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
     kinds: Record<number, string>;
   } | null>(null);
   const [owned, setOwned] = useState<CleanupItem[]>([]);   // 로그인 유저가 보유한 이 무기 인스턴스
+  const [tagScores, setTagScores] = useState<TagScores | null>(null);  // 종합 + 태그별 점수/추천
   const [copiedVal, setCopiedVal] = useState<string | null>(null);  // 복사 피드백(값별)
   const copyText = (val: string) => {
     navigator.clipboard?.writeText(val);
@@ -61,6 +62,20 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
         .then(setScore)
         .catch(() => setScore(null));
     }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [weapon, scoringProfile, JSON.stringify(selectedPerks), rolls]);
+
+  // 종합 + 태그별(PvE/PvP/GM) 점수·추천.
+  useEffect(() => {
+    if (!weapon || !scoringProfile) { setTagScores(null); return; }
+    const timeout = window.setTimeout(() => {
+      api.scoreTags({
+        weapon_hash: weapon.item_hash,
+        perks: selectedPerks,
+        profile: scoringProfile,
+        wishlist_rolls: rolls.map((r) => r.input),
+      }).then(setTagScores).catch(() => setTagScores(null));
+    }, 300);
     return () => window.clearTimeout(timeout);
   }, [weapon, scoringProfile, JSON.stringify(selectedPerks), rolls]);
 
@@ -427,6 +442,38 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
             {cov != null && cov < 1 && (
               <div className="coverage-note" title={t.builder.coverageTitle}>
                 ⓘ {t.builder.coverageText} ({Math.round(cov * 100)}% max)
+              </div>
+            )}
+
+            {tagScores && Object.keys(tagScores.tags).length > 0 && (
+              <div className="tag-scores">
+                <div className="tag-scores-title">{t.builder.tagScoresTitle}</div>
+                {Object.entries(tagScores.tags).map(([tag, ts]) => {
+                  const tcls = ts.classification;
+                  const tcolor = tcls ? CLASS_COLOR[tcls] : "var(--border-strong)";
+                  const hasRec = Object.keys(ts.recommended).length > 0;
+                  return (
+                    <div key={tag} className="tag-score-row">
+                      <span className="tag-score-name">{tag}</span>
+                      <span className="tag-score-val" style={{ color: tcolor }}>
+                        {ts.score != null
+                          ? `${ts.score}${tcls ? ` · ${t.scoring.classLabel[tcls as keyof typeof t.scoring.classLabel]}` : ""}`
+                          : "—"}
+                      </span>
+                      {hasRec && (
+                        <button
+                          className="btn ghost sm"
+                          title={t.builder.applyRecommended}
+                          onClick={() => {
+                            const sel: Record<number, number[]> = {};
+                            for (const [k, v] of Object.entries(ts.recommended)) sel[Number(k)] = v;
+                            setSelection(sel);
+                          }}
+                        >{t.builder.recommend}</button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
