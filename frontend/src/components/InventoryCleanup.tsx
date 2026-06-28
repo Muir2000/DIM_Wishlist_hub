@@ -6,7 +6,7 @@ import { useWishlist } from "../store";
 
 export function InventoryCleanup() {
   const { language, t } = useLanguage();
-  const { activeProfile, rolls } = useWishlist();
+  const { activeProfile, scoringProfile, rolls } = useWishlist();
   const [status, setStatus] = useState<InventoryStatus | null>(null);
   const [items, setItems] = useState<CleanupItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ export function InventoryCleanup() {
     setLoading(true);
     setMsg("");
     try {
-      const list = await inventoryApi.cleanup(activeProfile, rolls.map((r) => r.input));
+      const list = await inventoryApi.cleanup(scoringProfile, rolls.map((r) => r.input));
       setItems(list);
       if (!activeProfile) setMsg(t.vault.neutralProfile);
     } finally {
@@ -49,7 +49,7 @@ export function InventoryCleanup() {
   }
 
   async function exportTrash() {
-    const res = await inventoryApi.exportTrashlist(activeProfile, rolls.map((r) => r.input));
+    const res = await inventoryApi.exportTrashlist(scoringProfile, rolls.map((r) => r.input));
     const blob = new Blob([res.content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

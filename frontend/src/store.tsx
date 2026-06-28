@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { api } from "./api";
-import type { RollInput, ScoringProfile } from "./api";
+import type { RollInput, ScoringProfile, SynergyBonus } from "./api";
 import { useAuth } from "./auth";
 
 export interface SavedRoll {
@@ -32,7 +32,8 @@ interface WishlistCtx {
   setSelection: (ids: string[], primary?: string | null) => void;
   refreshProfiles: () => Promise<void>;
   upsertProfile: (p: ScoringProfile) => Promise<ScoringProfile | null>;  // 가중치 저장(롤 보존)
-  activeProfile: ScoringProfile | null;        // 점수용(현재 primary)
+  activeProfile: ScoringProfile | null;        // 편집/표시용(primary)
+  scoringProfile: ScoringProfile | null;       // 점수 계산용(선택 프로필 병합)
   setActiveProfile: (p: ScoringProfile | null) => void;  // 단일 활성(호환)
 }
 
@@ -40,6 +41,54 @@ const Ctx = createContext<WishlistCtx | null>(null);
 
 let _id = 1;
 const reid = (rs: SavedRoll[] = []): SavedRoll[] => rs.map((r) => ({ ...r, id: _id++ }));
+
+function avgDict(dicts: Array<Record<string, number> | undefined>): Record<string, number> {
+  const sum: Record<string, number> = {}, cnt: Record<string, number> = {};
+  for (const d of dicts) for (const [k, v] of Object.entries(d ?? {})) {
+    sum[k] = (sum[k] ?? 0) + v; cnt[k] = (cnt[k] ?? 0) + 1;
+  }
+  const out: Record<string, number> = {};
+  for (const k of Object.keys(sum)) out[k] = sum[k] / cnt[k];
+  return out;
+}
+
+// 선택된 여러 프로필을 점수용 1개로 결합(가중치 합집합 max, blend 평균). 1개면 그대로.
+function mergeProfiles(profs: ScoringProfile[], primary: ScoringProfile | null): ScoringProfile | null {
+  if (profs.length === 0) return primary;
+  if (profs.length === 1) return profs[0];
+  const base = primary ?? profs[0];
+  const maxMerge = (key: "stat_weights" | "perk_weights"): Record<string, number> => {
+    const out: Record<string, number> = {};
+    for (const p of profs) for (const [k, v] of Object.entries(p[key] ?? {})) {
+      out[k] = k in out ? Math.max(out[k], v) : v;
+    }
+    return out;
+  };
+  const ctxW: Record<string, Record<string, number>> = {};
+  for (const p of profs) for (const [sc, m] of Object.entries(p.context_weights ?? {})) {
+    ctxW[sc] = ctxW[sc] ?? {};
+    for (const [plug, v] of Object.entries(m)) ctxW[sc][plug] = plug in ctxW[sc] ? Math.max(ctxW[sc][plug], v) : v;
+  }
+  const ctxS: Record<string, SynergyBonus[]> = {};
+  for (const p of profs) for (const [sc, arr] of Object.entries(p.context_synergies ?? {})) {
+    ctxS[sc] = [...(ctxS[sc] ?? []), ...arr];
+  }
+  return {
+    ...base,
+    name: `(${profs.length})`,
+    stat_weights: maxMerge("stat_weights"),
+    perk_weights: maxMerge("perk_weights"),
+    context_weights: ctxW,
+    synergy_bonuses: profs.flatMap((p) => p.synergy_bonuses ?? []),
+    context_synergies: ctxS,
+    use_wishlist_weights: profs.some((p) => p.use_wishlist_weights),
+    blend: avgDict(profs.map((p) => p.blend)),
+    scope_blend: avgDict(profs.map((p) => p.scope_blend)),
+    column_weights: avgDict(profs.map((p) => p.column_weights)),
+    thresholds: base.thresholds,
+    rolls: [],
+  };
+}
 
 function defaultProfile(name: string, rolls: SavedRoll[]): ScoringProfile {
   return {
@@ -71,6 +120,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     }
     return out;
   }, [profiles, selectedIds]);
+  // 점수용: 선택된 프로필들을 1개로 병합(1개면 그대로). primary가 가중치 기준.
+  const scoringProfile = useMemo<ScoringProfile | null>(() => {
+    const sel = profiles.filter((p) => p.id && selectedIds.includes(p.id));
+    return mergeProfiles(sel, activeProfile);
+  }, [profiles, selectedIds, primaryId]);
 
   // 로그인 시: 프로필 목록 + 상태(선택/primary) 로드. 레거시 user_state.rolls 마이그레이션.
   useEffect(() => {
@@ -185,9 +239,9 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     () => ({
       rolls, title, description, addRoll, addRolls, removeRoll, clear, setTitle, setDescription,
       profiles, selectedIds, primaryId, setSelection, refreshProfiles, upsertProfile,
-      activeProfile, setActiveProfile,
+      activeProfile, scoringProfile, setActiveProfile,
     }),
-    [rolls, title, description, profiles, selectedIds, primaryId, activeProfile],
+    [rolls, title, description, profiles, selectedIds, primaryId, activeProfile, scoringProfile],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

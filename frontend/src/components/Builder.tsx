@@ -18,7 +18,7 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
 }) {
   const { language, t } = useLanguage();
   const { loggedIn } = useAuth();
-  const { addRoll, activeProfile, rolls } = useWishlist();
+  const { addRoll, activeProfile, scoringProfile, rolls } = useWishlist();
   const [weapon, setWeapon] = useState<WeaponDetail | null>(null);
   const [selection, setSelection] = useState<Record<number, number[]>>({});
   const [trash, setTrash] = useState(false);
@@ -37,11 +37,16 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
     kinds: Record<number, string>;
   } | null>(null);
   const [owned, setOwned] = useState<CleanupItem[]>([]);   // 로그인 유저가 보유한 이 무기 인스턴스
-  const [copied, setCopied] = useState(false);             // hash 복사 피드백
+  const [copiedId, setCopiedId] = useState<number | null>(null);  // hash 복사 피드백(해시별)
+  const copyId = (hash: number) => {
+    navigator.clipboard?.writeText(String(hash));
+    setCopiedId(hash);
+    window.setTimeout(() => setCopiedId((c) => (c === hash ? null : c)), 1200);
+  };
 
   const selectedPerks = Object.values(selection).flat();
   useEffect(() => {
-    if (!weapon || !activeProfile) {
+    if (!weapon || !scoringProfile) {
       setScore(null);
       return;
     }
@@ -50,17 +55,17 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
         .score({
           weapon_hash: weapon.item_hash,
           perks: selectedPerks,
-          profile: activeProfile,
+          profile: scoringProfile,
           wishlist_rolls: rolls.map((r) => r.input),
         })
         .then(setScore)
         .catch(() => setScore(null));
     }, 250);
     return () => window.clearTimeout(timeout);
-  }, [weapon, activeProfile, JSON.stringify(selectedPerks), rolls]);
+  }, [weapon, scoringProfile, JSON.stringify(selectedPerks), rolls]);
 
   useEffect(() => {
-    if (!weapon || !activeProfile) {
+    if (!weapon || !scoringProfile) {
       setPerkW(null);
       return;
     }
@@ -68,7 +73,7 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
     api
       .perkWeights({
         weapon_hash: weapon.item_hash,
-        profile: activeProfile,
+        profile: scoringProfile,
         wishlist_rolls: rolls.map((r) => r.input),
       })
       .then((res) => {
@@ -85,18 +90,18 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
       })
       .catch(() => { if (!cancelled) setPerkW(null); });
     return () => { cancelled = true; };
-  }, [weapon, activeProfile, rolls]);
+  }, [weapon, scoringProfile, rolls]);
 
   // 로그인 유저가 이 무기를 보유 중이면 인스턴스(퍽롤+점수)를 조회.
   useEffect(() => {
     if (!weapon || !loggedIn) { setOwned([]); return; }
     let cancelled = false;
     inventoryApi
-      .weaponRolls(weapon.item_hash, activeProfile, rolls.map((r) => r.input))
+      .weaponRolls(weapon.item_hash, scoringProfile, rolls.map((r) => r.input))
       .then((list) => { if (!cancelled) setOwned(list); })
       .catch(() => { if (!cancelled) setOwned([]); });
     return () => { cancelled = true; };
-  }, [weapon, loggedIn, activeProfile, rolls]);
+  }, [weapon, loggedIn, scoringProfile, rolls]);
 
   function resetBuilder() {
     setSelection({});
@@ -214,15 +219,18 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
               <div>
                 <div className="w-name">
                   {weaponName}
-                  <button
-                    className="copy-hash"
-                    title={t.builder.copyHash}
-                    onClick={() => {
-                      navigator.clipboard?.writeText(String(weapon.item_hash));
-                      setCopied(true);
-                      window.setTimeout(() => setCopied(false), 1200);
-                    }}
-                  >{copied ? `✓ ${t.builder.copied}` : `⧉ ${weapon.item_hash}`}</button>
+                  {(() => {
+                    // 보유 중이면 창고 변형의 ID, 아니면 검색 무기 ID.
+                    const idHash = owned[0]?.item_hash ?? weapon.item_hash;
+                    const fromVault = owned.length > 0;
+                    return (
+                      <button
+                        className="copy-hash"
+                        title={fromVault ? t.builder.copyHashVault : t.builder.copyHash}
+                        onClick={() => copyId(idHash)}
+                      >{copiedId === idHash ? `✓ ${t.builder.copied}` : `⧉ ${idHash}${fromVault ? " 🗄" : ""}`}</button>
+                    );
+                  })()}
                 </div>
                 <div className="w-sub">
                   {weaponTypeLabel(weapon.weapon_subtype, t, weapon.type_label)}
@@ -350,6 +358,11 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
                           )}
                         </div>
                       )}
+                      <button
+                        className="btn ghost sm owned-load"
+                        title={t.builder.copyHashVault}
+                        onClick={() => copyId(it.item_hash)}
+                      >{copiedId === it.item_hash ? "✓" : "⧉"}</button>
                       {onLoadRoll && (
                         <button
                           className="btn ghost sm owned-load"

@@ -113,6 +113,7 @@ export const ko: Messages = {
     bestRollHint: "이 사본에서 선택 가능한 퍽으로 낼 수 있는 최고 점수(리셰이프 등)",
     loadRoll: "이 롤을 빌더로 불러오기",
     copyHash: "무기 고유번호 복사 (DIM용)",
+    copyHashVault: "내 창고 사본의 무기 ID 복사 (DIM용)",
     copied: "복사됨",
   },
   list: {

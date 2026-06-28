@@ -110,6 +110,7 @@ export const en = {
     bestRollHint: "Best score achievable from this copy's selectable perks (e.g. by reshaping)",
     loadRoll: "Load this roll into the builder",
     copyHash: "Copy weapon ID (for DIM)",
+    copyHashVault: "Copy your vault copy's weapon ID (for DIM)",
     copied: "Copied",
   },
   list: {
