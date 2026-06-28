@@ -66,7 +66,7 @@ def _perk_columns(conn, reusable, equipped_perks, col_map, base_map, equipped_ba
             if sort_key is None:
                 sort_key = ci if ci is not None else int(si)
             col_perks.append(InventoryPerk(
-                plug_hash=ph, name=(pr["name_ko"] or pr["name_en"]), name_en=pr["name_en"],
+                plug_hash=ph, base_hash=base, name=(pr["name_ko"] or pr["name_en"]), name_en=pr["name_en"],
                 icon=serialize.icon_url(pr["icon"]), column_kind=kind, column_index=ci,
                 equipped=(base in equipped_bases),
             ))
@@ -228,6 +228,7 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
             ci, kind = col_map.get(ph) or col_map.get(base) or (None, _global_kind(conn, base))
             perk_names.append(InventoryPerk(
                 plug_hash=ph,
+                base_hash=base,
                 name=(pr["name_ko"] or pr["name_en"]),
                 name_en=pr["name_en"],
                 icon=serialize.icon_url(pr["icon"]),

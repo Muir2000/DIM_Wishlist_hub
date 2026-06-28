@@ -197,6 +197,7 @@ class DeriveWeightsResult(BaseModel):
 # ---------- v2 Phase 3: 인벤토리 / 정리 ----------
 class InventoryPerk(BaseModel):
     plug_hash: int
+    base_hash: Optional[int] = None     # 기본형 퍽 해시(강화→기본). 빌더 그리드 매칭/로드용
     name: Optional[str] = None
     name_en: Optional[str] = None
     icon: Optional[str] = None

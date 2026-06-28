@@ -371,17 +371,18 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
                             // 다중 퍽 전부: 열별 선택 가능 퍽(perk_columns) → 열당 OR.
                             // 열 단위로 키 부여(열의 column_index 우선, 없으면 배열 순서) → 시즌 변형으로
                             // column_index 가 null 인 퍽도 누락 없이 로드.
+                            // 기본형 해시(base_hash)로 로드 — 빌더 그리드는 기본형을 쓰므로 강화 퍽도 매칭.
                             const cols: Record<string, number[]> = {};
                             const pcols = (it.perk_columns ?? []).filter((c) => c.length > 0);
                             if (pcols.length > 0) {
                               pcols.forEach((col, ci) => {
                                 const key = col[0].column_index ?? ci;
-                                cols[String(key)] = col.map((p) => p.plug_hash);
+                                cols[String(key)] = col.map((p) => p.base_hash ?? p.plug_hash);
                               });
                             } else {
                               it.perks.forEach((p, i) => {
                                 const key = p.column_index ?? i;
-                                (cols[String(key)] ??= []).push(p.plug_hash);
+                                (cols[String(key)] ??= []).push(p.base_hash ?? p.plug_hash);
                               });
                             }
                             onLoadRoll(it.item_hash, cols, {

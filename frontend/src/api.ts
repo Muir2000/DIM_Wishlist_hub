@@ -371,6 +371,7 @@ export interface InventoryStatus {
 
 export interface InvPerk {
   plug_hash: number;
+  base_hash?: number | null;   // 기본형 해시(빌더 그리드 매칭/로드용)
   name?: string | null;
   name_en?: string | null;
   icon?: string | null;
