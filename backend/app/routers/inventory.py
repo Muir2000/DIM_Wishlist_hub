@@ -169,9 +169,11 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
         w = repo.get_weapon(conn, row["item_hash"])
         if not w:
             continue
-        kind_map = {wp["plug_hash"]: wp["column_kind"] for wp in conn.execute(
-            "SELECT plug_hash, column_kind FROM weapon_perks WHERE weapon_hash = ?",
+        # 이 무기 풀: plug → (열 인덱스, 열 종류). 열(총열/탄창/특성1/특성2/기원) 구분 표시용.
+        col_map = {wp["plug_hash"]: (wp["column_index"], wp["column_kind"]) for wp in conn.execute(
+            "SELECT plug_hash, column_index, column_kind FROM weapon_perks WHERE weapon_hash = ?",
             (row["item_hash"],)).fetchall()}
+        kind_map = {p: ck for p, (_ci, ck) in col_map.items()}
         # 점수: 이 무기 풀(weapon_perks)에 매칭되는 퍽만 사용
         score_perks = [p for p in norm_plugs if p in kind_map]
         res = scoring.score_roll(conn, row["item_hash"], score_perks, profile,
@@ -180,7 +182,7 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
         # ingest 에서 제외되어 미존재). 강화 퍽도 원본 해시 그대로 보여준다(실제 장착 반영).
         perk_names = []
         seen = set()
-        for ph in raw_plugs:
+        for order_i, ph in enumerate(raw_plugs):
             if ph in seen:
                 continue
             pr = conn.execute("SELECT name_ko, name_en, icon FROM perks WHERE plug_hash = ?", (ph,)).fetchone()
@@ -188,13 +190,15 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
                 continue
             seen.add(ph)
             base = base_map.get(ph, ph)
-            kind = kind_map.get(ph) or kind_map.get(base) or _global_kind(conn, base)
+            ci, kind = col_map.get(ph) or col_map.get(base) or (None, _global_kind(conn, base))
             perk_names.append(InventoryPerk(
                 plug_hash=ph,
                 name=(pr["name_ko"] or pr["name_en"]),
                 name_en=pr["name_en"],
                 icon=serialize.icon_url(pr["icon"]),
                 column_kind=kind,
+                # 풀에 열 인덱스가 있으면 그걸로, 없으면 장착 소켓 순서로 정렬(총열→탄창→특성→기원).
+                column_index=ci if ci is not None else order_i,
             ))
         out.append(CleanupItem(
             item_instance_id=row["item_instance_id"], item_hash=row["item_hash"],

@@ -271,11 +271,15 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
                 {owned.map((it) => {
                   const ocls = it.classification;
                   const color = ocls ? CLASS_COLOR[ocls] : "var(--border-strong)";
+                  // 열 순서(총열→탄창→특성1→특성2→기원)로 정렬해 컬럼처럼 표시.
+                  const perks = [...it.perks].sort(
+                    (a, b) => (a.column_index ?? 99) - (b.column_index ?? 99),
+                  );
                   return (
                     <div key={it.item_instance_id} className="owned-roll">
                       <div className="owned-perks">
-                        {it.perks.length === 0 && <span className="hint">{t.vault.noPerks}</span>}
-                        {it.perks.map((p) => {
+                        {perks.length === 0 && <span className="hint">{t.vault.noPerks}</span>}
+                        {perks.map((p) => {
                           const shape = p.column_kind === "barrel" || p.column_kind === "magazine" ? "square" : "circle";
                           const label = displayName(p, language);
                           return (

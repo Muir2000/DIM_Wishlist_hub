@@ -199,6 +199,7 @@ class InventoryPerk(BaseModel):
     name_en: Optional[str] = None
     icon: Optional[str] = None
     column_kind: Optional[str] = None   # barrel|magazine|trait|origin|intrinsic (아이콘 모양용)
+    column_index: Optional[int] = None  # 열 위치(총열0/탄창1/특성1 2/특성2 3/기원…) — 컬럼 정렬용
 
 
 class CleanupItem(BaseModel):

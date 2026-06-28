@@ -378,7 +378,7 @@ export interface CleanupItem {
   damage_label?: string | null;
   tier?: number | null;
   power?: number | null;
-  perks: Array<{ plug_hash: number; name?: string | null; name_en?: string | null; icon?: string | null; column_kind?: string | null }>;
+  perks: Array<{ plug_hash: number; name?: string | null; name_en?: string | null; icon?: string | null; column_kind?: string | null; column_index?: number | null }>;
   stats: Record<string, number>;
   score?: number | null;
   classification?: string | null;
