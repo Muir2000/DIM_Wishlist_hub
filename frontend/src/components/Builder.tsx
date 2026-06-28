@@ -37,11 +37,11 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
     kinds: Record<number, string>;
   } | null>(null);
   const [owned, setOwned] = useState<CleanupItem[]>([]);   // 로그인 유저가 보유한 이 무기 인스턴스
-  const [copiedId, setCopiedId] = useState<number | null>(null);  // hash 복사 피드백(해시별)
-  const copyId = (hash: number) => {
-    navigator.clipboard?.writeText(String(hash));
-    setCopiedId(hash);
-    window.setTimeout(() => setCopiedId((c) => (c === hash ? null : c)), 1200);
+  const [copiedVal, setCopiedVal] = useState<string | null>(null);  // 복사 피드백(값별)
+  const copyText = (val: string) => {
+    navigator.clipboard?.writeText(val);
+    setCopiedVal(val);
+    window.setTimeout(() => setCopiedVal((c) => (c === val ? null : c)), 1200);
   };
 
   const selectedPerks = Object.values(selection).flat();
@@ -220,15 +220,15 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
                 <div className="w-name">
                   {weaponName}
                   {(() => {
-                    // 보유 중이면 창고 변형의 ID, 아니면 검색 무기 ID.
-                    const idHash = owned[0]?.item_hash ?? weapon.item_hash;
+                    // 보유 중이면 창고 사본의 instanceId(DIM: id:<…>), 아니면 검색 무기 item_hash.
                     const fromVault = owned.length > 0;
+                    const idVal = fromVault ? owned[0].item_instance_id : String(weapon.item_hash);
                     return (
                       <button
                         className="copy-hash"
                         title={fromVault ? t.builder.copyHashVault : t.builder.copyHash}
-                        onClick={() => copyId(idHash)}
-                      >{copiedId === idHash ? `✓ ${t.builder.copied}` : `⧉ ${idHash}${fromVault ? " 🗄" : ""}`}</button>
+                        onClick={() => copyText(idVal)}
+                      >{copiedVal === idVal ? `✓ ${t.builder.copied}` : (fromVault ? "⧉ ID 🗄" : `⧉ ${idVal}`)}</button>
                     );
                   })()}
                 </div>
@@ -361,15 +361,19 @@ export function Builder({ picked, pending, clearPending, onLoadRoll }: {
                       <button
                         className="btn ghost sm owned-load"
                         title={t.builder.copyHashVault}
-                        onClick={() => copyId(it.item_hash)}
-                      >{copiedId === it.item_hash ? "✓" : "⧉"}</button>
+                        onClick={() => copyText(it.item_instance_id)}
+                      >{copiedVal === it.item_instance_id ? "✓" : "⧉"}</button>
                       {onLoadRoll && (
                         <button
                           className="btn ghost sm owned-load"
                           title={t.builder.loadRoll}
                           onClick={() => {
+                            // 다중 퍽 전부: 열별 선택 가능 퍽(perk_columns) → 열당 OR. 없으면 장착 퍽.
                             const cols: Record<string, number[]> = {};
-                            for (const p of it.perks) {
+                            const src = it.perk_columns && it.perk_columns.length > 0
+                              ? it.perk_columns.flat()
+                              : it.perks;
+                            for (const p of src) {
                               if (p.column_index != null) (cols[String(p.column_index)] ??= []).push(p.plug_hash);
                             }
                             onLoadRoll(it.item_hash, cols, {
