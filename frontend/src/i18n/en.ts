@@ -108,6 +108,9 @@ export const en = {
     addToWishlist: "Add to wishlist",
     ownedRolls: "Owned rolls (your vault)",
     bestRollHint: "Best score achievable from this copy's selectable perks (e.g. by reshaping)",
+    loadRoll: "Load this roll into the builder",
+    copyHash: "Copy weapon ID (for DIM)",
+    copied: "Copied",
   },
   list: {
     title: "My list",
@@ -126,6 +129,8 @@ export const en = {
     lines: "lines",
     delete: "Delete",
     clearAll: "Clear all",
+    onlyThisWeapon: "This weapon only",
+    noneForWeapon: "No saved rolls for this weapon.",
   },
   wishlist: {
     buildInfo: "Build info",

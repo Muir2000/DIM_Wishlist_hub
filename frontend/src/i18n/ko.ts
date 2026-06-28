@@ -111,6 +111,9 @@ export const ko: Messages = {
     addToWishlist: "위시리스트에 추가",
     ownedRolls: "보유 중인 롤 (내 창고)",
     bestRollHint: "이 사본에서 선택 가능한 퍽으로 낼 수 있는 최고 점수(리셰이프 등)",
+    loadRoll: "이 롤을 빌더로 불러오기",
+    copyHash: "무기 고유번호 복사 (DIM용)",
+    copied: "복사됨",
   },
   list: {
     title: "내 리스트",
@@ -129,6 +132,8 @@ export const ko: Messages = {
     lines: "줄",
     delete: "삭제",
     clearAll: "전체 비우기",
+    onlyThisWeapon: "이 무기만",
+    noneForWeapon: "이 무기로 저장된 롤이 없습니다.",
   },
   wishlist: {
     buildInfo: "빌드 정보",

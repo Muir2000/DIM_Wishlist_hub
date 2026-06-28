@@ -1,15 +1,26 @@
 import { useRef, useState } from "react";
 import { api, ELEM_VAR, RARITY_VAR } from "../api";
-import type { ImportResult } from "../api";
-import { formatTemplate, useLanguage } from "../i18n";
+import type { ImportResult, WeaponSummary } from "../api";
+import { displayName, formatTemplate, useLanguage } from "../i18n";
 import { useWishlist } from "../store";
 
-export function ListRail() {
+export function ListRail({ onLoadRoll, picked }: {
+  onLoadRoll?: (hash: number, columns: Record<string, number[]>, summary?: Partial<WeaponSummary>) => void;
+  picked?: WeaponSummary | null;
+}) {
   const { language, t } = useLanguage();
   const { rolls, addRolls, removeRoll, clear, setTitle, setDescription } = useWishlist();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [onlyThis, setOnlyThis] = useState(true);
+
+  // 검색/선택한 무기로 필터(같은 무기명 = 변형 흡수).
+  const pickedName = picked ? displayName(picked, language) : "";
+  const shown = (picked && onlyThis)
+    ? rolls.filter((r) => r.input.weapon_hash === picked.item_hash
+        || (!!pickedName && r.weaponName === pickedName))
+    : rolls;
 
   function focusSearch() {
     const el = document.querySelector<HTMLInputElement>(".search-input");
@@ -72,16 +83,36 @@ export function ListRail() {
         <input ref={fileRef} type="file" accept=".txt,text/plain" hidden onChange={onFile} />
       </div>
       {status && <div className="rail-status">{status}</div>}
+      {picked && rolls.length > 0 && (
+        <label className="rail-filter">
+          <input type="checkbox" checked={onlyThis} onChange={(e) => setOnlyThis(e.target.checked)} />
+          {t.list.onlyThisWeapon}
+        </label>
+      )}
       <div className="rail-list">
         {rolls.length === 0 && (
           <div className="rail-empty" dangerouslySetInnerHTML={{ __html: t.list.empty }} />
         )}
-        {rolls.map((roll) => {
+        {rolls.length > 0 && shown.length === 0 && (
+          <div className="rail-empty hint">{t.list.noneForWeapon}</div>
+        )}
+        {shown.map((roll) => {
           const elemVar = roll.damageType ? ELEM_VAR[roll.damageType] : undefined;
           const rarityVar = roll.tier ? RARITY_VAR[roll.tier] : undefined;
           const cls = roll.input.wildcard ? "wild" : roll.input.trash ? "trash" : "";
+          const loadable = !roll.input.wildcard && !!onLoadRoll;
           return (
-            <div key={roll.id} className={`rail-item ${cls}`}>
+            <div
+              key={roll.id}
+              className={`rail-item ${cls} ${loadable ? "loadable" : ""}`}
+              onClick={loadable
+                ? () => onLoadRoll!(roll.input.weapon_hash, roll.input.columns, {
+                    name: roll.weaponName, type_label: roll.typeLabel,
+                    default_damage_type: roll.damageType, tier: roll.tier,
+                  })
+                : undefined}
+              title={loadable ? t.builder.loadRoll : undefined}
+            >
               <span
                 className="w-thumb"
                 style={{
@@ -103,7 +134,8 @@ export function ListRail() {
                   {roll.input.tags.length ? ` · ${roll.input.tags.join(",")}` : ""}
                 </span>
               </span>
-              <button className="x" title={t.list.delete} onClick={() => removeRoll(roll.id)}>✕</button>
+              <button className="x" title={t.list.delete}
+                      onClick={(e) => { e.stopPropagation(); removeRoll(roll.id); }}>✕</button>
             </div>
           );
         })}

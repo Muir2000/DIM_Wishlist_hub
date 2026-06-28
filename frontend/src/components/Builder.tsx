@@ -10,7 +10,12 @@ import { useWishlist } from "../store";
 
 const TAGS = ["PvE", "PvP", "GM", "레이드"];
 
-export function Builder({ picked }: { picked: WeaponSummary | null }) {
+export function Builder({ picked, pending, clearPending, onLoadRoll }: {
+  picked: WeaponSummary | null;
+  pending?: { hash: number; columns: Record<string, number[]> } | null;
+  clearPending?: () => void;
+  onLoadRoll?: (hash: number, columns: Record<string, number[]>, summary?: Partial<WeaponSummary>) => void;
+}) {
   const { language, t } = useLanguage();
   const { loggedIn } = useAuth();
   const { addRoll, activeProfile, rolls } = useWishlist();
@@ -32,6 +37,7 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
     kinds: Record<number, string>;
   } | null>(null);
   const [owned, setOwned] = useState<CleanupItem[]>([]);   // 로그인 유저가 보유한 이 무기 인스턴스
+  const [copied, setCopied] = useState(false);             // hash 복사 피드백
 
   const selectedPerks = Object.values(selection).flat();
   useEffect(() => {
@@ -109,6 +115,15 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
       .catch(() => { if (!cancelled) setWeapon(null); });
     return () => { cancelled = true; };
   }, [picked?.item_hash]);
+
+  // 불러온 롤(pending)을 무기 로드 후 적용(같은 무기 재로드도 처리). columns→selection.
+  useEffect(() => {
+    if (!pending || !weapon || pending.hash !== weapon.item_hash) return;
+    const sel: Record<number, number[]> = {};
+    for (const [k, v] of Object.entries(pending.columns)) sel[Number(k)] = v;
+    setSelection(sel);
+    clearPending?.();
+  }, [pending, weapon]);
 
   function toggle(col: number, hash: number) {
     setSelection((prev) => {
@@ -197,7 +212,18 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
               <span className="elem-bar" />
               {weapon.icon ? <img className="w-icon" src={weapon.icon} alt="" /> : <div className="w-icon" />}
               <div>
-                <div className="w-name">{weaponName}</div>
+                <div className="w-name">
+                  {weaponName}
+                  <button
+                    className="copy-hash"
+                    title={t.builder.copyHash}
+                    onClick={() => {
+                      navigator.clipboard?.writeText(String(weapon.item_hash));
+                      setCopied(true);
+                      window.setTimeout(() => setCopied(false), 1200);
+                    }}
+                  >{copied ? `✓ ${t.builder.copied}` : `⧉ ${weapon.item_hash}`}</button>
+                </div>
                 <div className="w-sub">
                   {weaponTypeLabel(weapon.weapon_subtype, t, weapon.type_label)}
                   {weapon.default_damage_type ? <> · <span className="elem-name">{damageLabel(weapon.default_damage_type, t, weapon.damage_label)}</span></> : ""}
@@ -323,6 +349,22 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
                             </div>
                           )}
                         </div>
+                      )}
+                      {onLoadRoll && (
+                        <button
+                          className="btn ghost sm owned-load"
+                          title={t.builder.loadRoll}
+                          onClick={() => {
+                            const cols: Record<string, number[]> = {};
+                            for (const p of it.perks) {
+                              if (p.column_index != null) (cols[String(p.column_index)] ??= []).push(p.plug_hash);
+                            }
+                            onLoadRoll(it.item_hash, cols, {
+                              name: it.name, name_en: it.name_en, icon: it.icon,
+                              weapon_subtype: it.weapon_subtype, default_damage_type: it.default_damage_type, tier: it.tier,
+                            });
+                          }}
+                        >⬇</button>
                       )}
                     </div>
                   );

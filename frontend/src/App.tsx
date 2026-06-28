@@ -21,6 +21,13 @@ export default function App() {
   const [tab, setTab] = useState<TabKey>("builder");
   const [menuOpen, setMenuOpen] = useState(false);
   const [picked, setPicked] = useState<WeaponSummary | null>(null);
+  // 롤 불러오기: 무기 선택 + 적용할 퍽 선택(빌더가 소비). {hash, columns} 형태.
+  const [pending, setPending] = useState<{ hash: number; columns: Record<string, number[]> } | null>(null);
+  const loadRoll = (hash: number, columns: Record<string, number[]>, summary?: Partial<WeaponSummary>) => {
+    setTab("builder");
+    setPicked({ item_hash: hash, name: "", ...summary } as WeaponSummary);
+    setPending({ hash, columns });
+  };
 
   useEffect(() => {
     api.status().then(setStatus).catch(() => setStatus(null));
@@ -114,8 +121,8 @@ export default function App() {
 
       {tab === "builder" && (
         <div className="builder-shell">
-          <ListRail />
-          <Builder picked={picked} />
+          <ListRail onLoadRoll={loadRoll} picked={picked} />
+          <Builder picked={picked} pending={pending} clearPending={() => setPending(null)} onLoadRoll={loadRoll} />
         </div>
       )}
       {tab === "scoring" && <div className="page"><ScoringProfileEditor /></div>}

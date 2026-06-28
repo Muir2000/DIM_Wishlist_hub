@@ -430,6 +430,21 @@ a { color: var(--primary-hover); }
 .owned-cols .perk-icon, .owned-perks .perk-icon { width: 24px; height: 24px; }
 .owned-perk-name { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
 .owned-perk-pts { font-size: 10px; font-weight: 700; margin-left: 2px; }
+.owned-load { padding: 4px 8px; font-size: 12px; flex-shrink: 0; }
+/* 내 리스트: 무기 필터 토글 + 클릭 로드 */
+.rail-filter {
+  display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+  font-size: 12px; color: var(--text-muted); cursor: pointer;
+}
+.rail-item.loadable { cursor: pointer; }
+.rail-item.loadable:hover { background: var(--surface-2); }
+/* 무기 hash 복사 버튼 */
+.copy-hash {
+  margin-left: 8px; padding: 1px 7px; font-size: 11px; vertical-align: middle;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--text-faint); cursor: pointer;
+}
+.copy-hash:hover { color: var(--text-primary); border-color: var(--primary); }
 .owned-scores { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
 .owned-best {
   font-size: 12px; color: var(--success); border: 1px solid var(--success);
