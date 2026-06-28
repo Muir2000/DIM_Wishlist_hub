@@ -200,6 +200,7 @@ class InventoryPerk(BaseModel):
     icon: Optional[str] = None
     column_kind: Optional[str] = None   # barrel|magazine|trait|origin|intrinsic (아이콘 모양용)
     column_index: Optional[int] = None  # 열 위치(총열0/탄창1/특성1 2/특성2 3/기원…) — 컬럼 정렬용
+    equipped: bool = False              # 이 인스턴스에 현재 장착된 퍽인지(열 다중 퍽 중 강조용)
 
 
 class CleanupItem(BaseModel):
@@ -214,7 +215,8 @@ class CleanupItem(BaseModel):
     damage_label: Optional[str] = None
     tier: Optional[int] = None
     power: Optional[int] = None
-    perks: List[InventoryPerk] = Field(default_factory=list)
+    perks: List[InventoryPerk] = Field(default_factory=list)              # 장착 롤(평면)
+    perk_columns: List[List[InventoryPerk]] = Field(default_factory=list)  # 열별 선택 가능 퍽(제작=다중)
     stats: Dict[str, float] = Field(default_factory=dict)
     score: Optional[float] = None
     classification: Optional[str] = None

@@ -366,6 +366,16 @@ export interface InventoryStatus {
   login_url?: string | null;
 }
 
+export interface InvPerk {
+  plug_hash: number;
+  name?: string | null;
+  name_en?: string | null;
+  icon?: string | null;
+  column_kind?: string | null;
+  column_index?: number | null;
+  equipped?: boolean;
+}
+
 export interface CleanupItem {
   item_instance_id: string;
   item_hash: number;
@@ -378,7 +388,8 @@ export interface CleanupItem {
   damage_label?: string | null;
   tier?: number | null;
   power?: number | null;
-  perks: Array<{ plug_hash: number; name?: string | null; name_en?: string | null; icon?: string | null; column_kind?: string | null; column_index?: number | null }>;
+  perks: InvPerk[];                 // 장착 롤(평면)
+  perk_columns?: InvPerk[][];       // 열별 선택 가능 퍽(제작=다중)
   stats: Record<string, number>;
   score?: number | null;
   classification?: string | null;

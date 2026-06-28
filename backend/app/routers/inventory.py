@@ -24,7 +24,8 @@ from .auth import access_token, oauth_configured
 
 router = APIRouter(tags=["inventory (고도화)"])
 
-PROFILE_COMPONENTS = "102,201,205,300,304,305"
+# 305=ItemSockets(장착 퍽), 310=ItemReusablePlugs(소켓별 선택 가능 퍽 — 제작 무기 다중 퍽)
+PROFILE_COMPONENTS = "102,201,205,300,304,305,310"
 
 
 def _inv_key(request: Request) -> str:
@@ -48,6 +49,35 @@ def _global_kind(conn, plug_hash) -> Optional[str]:
     r = conn.execute(
         "SELECT column_kind FROM weapon_perks WHERE plug_hash = ? LIMIT 1", (plug_hash,)).fetchone()
     return r["column_kind"] if r else None
+
+
+def _perk_columns(conn, reusable, equipped_perks, col_map, base_map, equipped_bases):
+    """열별 선택 가능 퍽(제작 무기 = 한 열 다중). reusable(310 소켓별)이 있으면 그걸로,
+    없으면(구 동기화/랜덤롤) 장착 퍽을 열당 단일로. 각 열은 column_index 순으로 정렬."""
+    cols = []  # (정렬키, [InventoryPerk])
+    for si, hashes in (reusable or {}).items():
+        col_perks, sort_key = [], None
+        for ph in hashes:
+            pr = conn.execute("SELECT name_ko, name_en, icon FROM perks WHERE plug_hash = ?", (ph,)).fetchone()
+            if not pr:
+                continue  # 코스메틱/마스터워크/인트린식 소켓 — 퍽 아님
+            base = base_map.get(ph, ph)
+            ci, kind = col_map.get(ph) or col_map.get(base) or (None, _global_kind(conn, base))
+            if sort_key is None:
+                sort_key = ci if ci is not None else int(si)
+            col_perks.append(InventoryPerk(
+                plug_hash=ph, name=(pr["name_ko"] or pr["name_en"]), name_en=pr["name_en"],
+                icon=serialize.icon_url(pr["icon"]), column_kind=kind, column_index=ci,
+                equipped=(base in equipped_bases),
+            ))
+        if col_perks:
+            cols.append((sort_key if sort_key is not None else int(si), col_perks))
+    if not cols:  # reusable 없음 → 장착 퍽을 열별 단일로
+        for p in equipped_perks:
+            cols.append((p.column_index if p.column_index is not None else 99,
+                         [p.model_copy(update={"equipped": True})]))
+    cols.sort(key=lambda x: x[0])
+    return [cp for _, cp in cols]
 
 
 def _stat_hash_map(conn) -> Dict[int, str]:
@@ -105,6 +135,7 @@ def me_sync(request: Request, conn: sqlite3.Connection = Depends(get_conn),
     instances = ic.get("instances", {}).get("data", {}) or {}
     stats_comp = ic.get("stats", {}).get("data", {}) or {}
     sockets_comp = ic.get("sockets", {}).get("data", {}) or {}
+    reusable_comp = ic.get("reusablePlugs", {}).get("data", {}) or {}
 
     weapon_hashes = _weapon_hashes(conn)
     stat_map = _stat_hash_map(conn)
@@ -117,13 +148,17 @@ def me_sync(request: Request, conn: sqlite3.Connection = Depends(get_conn),
         if not iid or ih not in weapon_hashes:
             continue
         plugs = [s["plugHash"] for s in sockets_comp.get(iid, {}).get("sockets", []) if s.get("plugHash")]
+        # 소켓별 선택 가능 퍽(제작 무기 = 한 열에 여러 퍽). {소켓idx: [plug_hash,...]}
+        reusable_raw = reusable_comp.get(iid, {}).get("plugs", {}) or {}
+        reusable = {si: [p["plugItemHash"] for p in pl if p.get("plugItemHash")]
+                    for si, pl in reusable_raw.items()}
         st = {}
         for sh, sv in (stats_comp.get(iid, {}).get("stats", {}) or {}).items():
             key = stat_map.get(int(sh))
             if key:
                 st[key] = sv.get("value")
         power = (instances.get(iid, {}).get("primaryStat", {}) or {}).get("value")
-        rows.append((iid, ih, json.dumps(plugs), json.dumps(st), power, now))
+        rows.append((iid, ih, json.dumps(plugs), json.dumps(st), power, now, json.dumps(reusable)))
 
     repo.replace_inventory(conn, tok["membership_id"], rows)
     return me_status(request, conn)
@@ -199,7 +234,17 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
                 column_kind=kind,
                 # 풀에 열 인덱스가 있으면 그걸로, 없으면 장착 소켓 순서로 정렬(총열→탄창→특성→기원).
                 column_index=ci if ci is not None else order_i,
+                equipped=True,
             ))
+        # 열별 선택 가능 퍽(제작 무기 다중). reusable(310)이 있으면 그걸로, 없으면 장착 퍽 단일.
+        reusable = {}
+        if "reusable_plugs" in row.keys() and row["reusable_plugs"]:
+            try:
+                reusable = json.loads(row["reusable_plugs"])
+            except (ValueError, TypeError):
+                reusable = {}
+        equipped_bases = {base_map.get(p, p) for p in raw_plugs}
+        perk_columns = _perk_columns(conn, reusable, perk_names, col_map, base_map, equipped_bases)
         out.append(CleanupItem(
             item_instance_id=row["item_instance_id"], item_hash=row["item_hash"],
             name=w["name_ko"] or w["name_en"] or str(row["item_hash"]),
@@ -210,7 +255,7 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
             default_damage_type=w["default_damage_type"],
             damage_label=labels.DAMAGE_KO.get(w["default_damage_type"]),
             tier=w["tier"],
-            power=row["power"], perks=perk_names, stats=stats,
+            power=row["power"], perks=perk_names, perk_columns=perk_columns, stats=stats,
             score=res["score"], classification=res["classification"],
         ))
     out.sort(key=lambda x: (x.score if x.score is not None else 0))

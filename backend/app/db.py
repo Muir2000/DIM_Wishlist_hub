@@ -126,7 +126,8 @@ CREATE TABLE IF NOT EXISTS inventory_items (
     plug_hashes      TEXT,   -- JSON 배열 (305 장착 퍽)
     stats            TEXT,   -- JSON {stat_key: value} (304 사전계산)
     power            INTEGER,
-    synced_at        TEXT
+    synced_at        TEXT,
+    reusable_plugs   TEXT    -- JSON {소켓idx: [plug_hash,...]} (310 선택 가능 퍽; 제작=열당 다중)
 );
 
 CREATE INDEX IF NOT EXISTS idx_wp_weapon   ON weapon_perks(weapon_hash);
@@ -177,6 +178,7 @@ def apply_schema(conn: sqlite3.Connection) -> None:
     for table, col, decl in (
         ("scoring_profiles", "owner", "TEXT"),
         ("oauth_tokens", "display_name", "TEXT"),
+        ("inventory_items", "reusable_plugs", "TEXT"),
     ):
         try:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")

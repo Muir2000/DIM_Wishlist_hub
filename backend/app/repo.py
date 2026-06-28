@@ -539,13 +539,15 @@ def get_token(conn, membership_id: Optional[str] = None) -> Optional[sqlite3.Row
 
 
 def replace_inventory(conn, membership_id: str, items: list) -> None:
-    """해당 멤버십의 인벤토리 스냅샷 교체. items: [(instance_id, item_hash, plug_json, stats_json, power, synced_at)]"""
+    """해당 멤버십의 인벤토리 스냅샷 교체.
+    items: [(instance_id, item_hash, plug_json, stats_json, power, synced_at[, reusable_json])]"""
     conn.execute("DELETE FROM inventory_items WHERE membership_id = ?", (membership_id,))
     conn.executemany(
         """INSERT OR REPLACE INTO inventory_items
-           (item_instance_id, membership_id, item_hash, plug_hashes, stats, power, synced_at)
-           VALUES (?,?,?,?,?,?,?)""",
-        [(it[0], membership_id, it[1], it[2], it[3], it[4], it[5]) for it in items],
+           (item_instance_id, membership_id, item_hash, plug_hashes, stats, power, synced_at, reusable_plugs)
+           VALUES (?,?,?,?,?,?,?,?)""",
+        [(it[0], membership_id, it[1], it[2], it[3], it[4], it[5],
+          it[6] if len(it) > 6 else None) for it in items],
     )
     conn.commit()
 

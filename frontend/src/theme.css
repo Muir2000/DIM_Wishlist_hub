@@ -415,12 +415,17 @@ a { color: var(--primary-hover); }
 }
 .owned-roll:last-child { border-bottom: none; }
 .owned-perks { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+/* 열별 그리드: 각 열(총열/탄창/특성1/특성2/기원)을 세로로, 열은 가로 배치 */
+.owned-cols { display: flex; gap: 8px; flex: 1; min-width: 0; flex-wrap: wrap; align-items: flex-start; }
+.owned-col { display: flex; flex-direction: column; gap: 4px; }
 .owned-perk {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 2px 8px 2px 2px; background: var(--surface-2);
   border: 1px solid var(--border); border-radius: var(--radius-pill);
 }
-.owned-perks .perk-icon { width: 24px; height: 24px; }
+.owned-perk.on { border-color: var(--primary); background: var(--surface-3); }
+.owned-perk.on .owned-perk-name { color: var(--text-primary); font-weight: 600; }
+.owned-cols .perk-icon, .owned-perks .perk-icon { width: 24px; height: 24px; }
 .owned-perk-name { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
 .perk-name { font-size: 13px; font-weight: 500; line-height: 1.2; }
 .perk-flags { display: flex; gap: 5px; margin-top: 3px; flex-wrap: wrap; }

@@ -271,26 +271,32 @@ export function Builder({ picked }: { picked: WeaponSummary | null }) {
                 {owned.map((it) => {
                   const ocls = it.classification;
                   const color = ocls ? CLASS_COLOR[ocls] : "var(--border-strong)";
-                  // 열 순서(총열→탄창→특성1→특성2→기원)로 정렬해 컬럼처럼 표시.
-                  const perks = [...it.perks].sort(
-                    (a, b) => (a.column_index ?? 99) - (b.column_index ?? 99),
-                  );
+                  // 열별 선택 가능 퍽(제작=다중). perk_columns 우선, 없으면 장착 퍽을 열당 하나로.
+                  const columns = it.perk_columns && it.perk_columns.length > 0
+                    ? it.perk_columns
+                    : [...it.perks]
+                        .sort((a, b) => (a.column_index ?? 99) - (b.column_index ?? 99))
+                        .map((p) => [p]);
                   return (
                     <div key={it.item_instance_id} className="owned-roll">
-                      <div className="owned-perks">
-                        {perks.length === 0 && <span className="hint">{t.vault.noPerks}</span>}
-                        {perks.map((p) => {
-                          const shape = p.column_kind === "barrel" || p.column_kind === "magazine" ? "square" : "circle";
-                          const label = displayName(p, language);
-                          return (
-                            <span key={p.plug_hash} className="owned-perk" title={label}>
-                              <span className={`perk-icon ${shape}`}>
-                                {p.icon ? <img src={p.icon} alt="" loading="lazy" /> : (label?.[0] ?? "?")}
-                              </span>
-                              <span className="owned-perk-name">{label}</span>
-                            </span>
-                          );
-                        })}
+                      <div className="owned-cols">
+                        {columns.length === 0 && <span className="hint">{t.vault.noPerks}</span>}
+                        {columns.map((col, ci) => (
+                          <div key={ci} className="owned-col">
+                            {col.map((p) => {
+                              const shape = p.column_kind === "barrel" || p.column_kind === "magazine" ? "square" : "circle";
+                              const label = displayName(p, language);
+                              return (
+                                <span key={p.plug_hash} className={`owned-perk ${p.equipped ? "on" : ""}`} title={label}>
+                                  <span className={`perk-icon ${shape}`}>
+                                    {p.icon ? <img src={p.icon} alt="" loading="lazy" /> : (label?.[0] ?? "?")}
+                                  </span>
+                                  <span className="owned-perk-name">{label}</span>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ))}
                       </div>
                       {it.score != null && (
                         <div
