@@ -254,8 +254,8 @@ def _score_inventory(conn, membership: str, profile: Optional[dict], context: Op
             if sig:
                 for col in perk_columns:
                     for p in col:
-                        w = weights.get(base_map.get(p.plug_hash, p.plug_hash))
-                        p.points = round(w * scoring.PERK_POINT_SCALE) if w is not None else None
+                        pw = weights.get(base_map.get(p.plug_hash, p.plug_hash))  # w(무기 row)와 충돌 금지
+                        p.points = round(pw * scoring.PERK_POINT_SCALE) if pw is not None else None
                 # 열별 최고 가중치 퍽 → 최선 롤 채점
                 best_perks = []
                 for col in perk_columns:
