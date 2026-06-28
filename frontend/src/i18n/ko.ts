@@ -187,6 +187,7 @@ export const ko: Messages = {
     statsCount: "스탯",
     contextCount: "컨텍스트",
     wishlistWeighted: "위시리스트 가중",
+    includeInList: "내 리스트에 포함",
     combo: "조합",
     sameWeapon: "동일 무기",
     sameFrame: "동일 프레임",

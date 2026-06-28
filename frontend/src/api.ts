@@ -13,10 +13,12 @@ export interface AuthMe {
 }
 
 export interface UserState {
-  rolls: SavedRoll[];
+  rolls: SavedRoll[];                  // 레거시(마이그레이션 읽기용) — 이제 롤은 프로필에 저장
   title: string;
   description: string;
-  activeProfileId: string | null;
+  activeProfileId: string | null;      // 레거시 단일
+  activeProfileIds?: string[];         // 내 리스트에 합칠 프로필들
+  primaryProfileId?: string | null;    // 가중치/편집 대상
 }
 
 export interface Perk {
@@ -108,6 +110,7 @@ export interface ScoringProfile {
   scope_blend?: Record<string, number>;     // 무기/프레임/종류 비중
   column_weights?: Record<string, number>;  // 총열/탄창/특성/기원 비중
   thresholds: Record<string, number>;
+  rolls?: SavedRoll[];                       // 이 프로필의 위시리스트 롤
   updated_at?: string | null;
 }
 

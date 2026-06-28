@@ -16,7 +16,7 @@ export interface SavedRoll {
 }
 
 interface WishlistCtx {
-  rolls: SavedRoll[];
+  rolls: SavedRoll[];                 // 선택된 프로필들의 롤 합집합 (읽기)
   title: string;
   description: string;
   addRoll: (r: Omit<SavedRoll, "id">) => void;
@@ -25,70 +25,169 @@ interface WishlistCtx {
   clear: () => void;
   setTitle: (s: string) => void;
   setDescription: (s: string) => void;
-  // v2 점수화
-  activeProfile: ScoringProfile | null;
-  setActiveProfile: (p: ScoringProfile | null) => void;
+  // 점수 프로필 (롤은 프로필에 보관)
+  profiles: ScoringProfile[];                  // 저장된 전체 프로필(롤 포함)
+  selectedIds: string[];                       // 내 리스트에 합칠 프로필들
+  primaryId: string | null;                    // 가중치/편집 대상
+  setSelection: (ids: string[], primary?: string | null) => void;
+  refreshProfiles: () => Promise<void>;
+  upsertProfile: (p: ScoringProfile) => Promise<ScoringProfile | null>;  // 가중치 저장(롤 보존)
+  activeProfile: ScoringProfile | null;        // 점수용(현재 primary)
+  setActiveProfile: (p: ScoringProfile | null) => void;  // 단일 활성(호환)
 }
 
 const Ctx = createContext<WishlistCtx | null>(null);
 
 let _id = 1;
+const reid = (rs: SavedRoll[] = []): SavedRoll[] => rs.map((r) => ({ ...r, id: _id++ }));
+
+function defaultProfile(name: string, rolls: SavedRoll[]): ScoringProfile {
+  return {
+    id: null, name, description: "", tags: [],
+    stat_weights: {}, perk_weights: {}, context_weights: {},
+    synergy_bonuses: [], context_synergies: {}, use_wishlist_weights: true,
+    blend: { stat: 1, perk: 1, synergy: 1 },
+    scope_blend: { weapon: 0.6, frame: 0.25, type: 0.15 },
+    column_weights: { trait: 1.0, barrel: 0.35, magazine: 0.35, origin: 0.2, intrinsic: 0.0 },
+    thresholds: { god: 75, viable: 40 },
+    rolls,
+  };
+}
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
   const { loggedIn } = useAuth();
-  const [rolls, setRolls] = useState<SavedRoll[]>([]);
+  const [profiles, setProfiles] = useState<ScoringProfile[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [primaryId, setPrimaryId] = useState<string | null>(null);
   const [title, setTitle] = useState("My wishlist");
   const [description, setDescription] = useState("");
-  const [activeProfile, setActiveProfile] = useState<ScoringProfile | null>(null);
-  const hydrated = useRef(false);  // 서버 상태 로드 완료(이후에만 자동 저장)
+  const hydrated = useRef(false);
 
-  // 로그인 시 서버에 저장된 빌더 상태(롤·활성 프로필) 복원. 로그아웃 시 초기화.
+  const activeProfile = profiles.find((p) => p.id === primaryId) ?? null;
+  const rolls = useMemo<SavedRoll[]>(() => {
+    const out: SavedRoll[] = [];
+    for (const p of profiles) {
+      if (p.id && selectedIds.includes(p.id)) out.push(...((p.rolls as SavedRoll[]) ?? []));
+    }
+    return out;
+  }, [profiles, selectedIds]);
+
+  // 로그인 시: 프로필 목록 + 상태(선택/primary) 로드. 레거시 user_state.rolls 마이그레이션.
   useEffect(() => {
     if (!loggedIn) {
       hydrated.current = false;
-      setRolls([]); setTitle("My wishlist"); setDescription(""); setActiveProfile(null);
+      setProfiles([]); setSelectedIds([]); setPrimaryId(null);
+      setTitle("My wishlist"); setDescription("");
       return;
     }
     let cancelled = false;
-    api.loadState().then(async (s) => {
+    (async () => {
+      const [profsRaw, state] = await Promise.all([
+        api.listProfiles().catch(() => [] as ScoringProfile[]),
+        api.loadState().catch(() => null),
+      ]);
       if (cancelled) return;
-      const loaded = (s.rolls ?? []) as SavedRoll[];
-      setRolls(loaded);
-      _id = Math.max(_id, ...loaded.map((r) => r.id + 1), 1);
-      setTitle(s.title || "My wishlist");
-      setDescription(s.description || "");
-      if (s.activeProfileId) {
-        try { setActiveProfile(await api.getProfile(s.activeProfileId)); }
-        catch { setActiveProfile(null); }
-      } else {
-        setActiveProfile(null);
+      let list = profsRaw.map((p) => ({ ...p, rolls: reid((p.rolls as SavedRoll[]) ?? []) }));
+
+      // 마이그레이션: 레거시 단일 위시리스트(user_state.rolls) → 프로필로 이관(1회).
+      // 로그인 사용자는 항상 최소 1개 프로필 보장(없으면 기본 생성).
+      const legacy = reid(((state?.rolls as SavedRoll[]) ?? []));
+      let primary = state?.primaryProfileId ?? state?.activeProfileId ?? null;
+      if (list.length === 0) {
+        const created = await api.saveProfile(defaultProfile("기본 프로필", legacy)).catch(() => null);
+        if (created) { list = [{ ...created, rolls: reid((created.rolls as SavedRoll[]) ?? legacy) }]; primary = created.id ?? null; }
+      } else if (legacy.length) {
+        const prim = list.find((p) => p.id === (primary ?? list[0].id));
+        if (prim && (!prim.rolls || prim.rolls.length === 0)) {
+          const merged = { ...prim, rolls: legacy };
+          await api.saveProfile(merged).catch(() => {});
+          list = list.map((p) => (p.id === prim.id ? merged : p));
+          primary = prim.id ?? null;
+        }
       }
-      if (!cancelled) hydrated.current = true;
-    }).catch(() => { hydrated.current = true; });
+      if (!primary && list.length) primary = list[0].id ?? null;
+      const sel = state?.activeProfileIds?.length
+        ? state.activeProfileIds.filter((id) => list.some((p) => p.id === id))
+        : (primary ? [primary] : []);
+
+      setProfiles(list);
+      setPrimaryId(primary);
+      setSelectedIds(sel.length ? sel : (primary ? [primary] : []));
+      setTitle(state?.title || "My wishlist");
+      setDescription(state?.description || "");
+      hydrated.current = true;
+    })().catch(() => { hydrated.current = true; });
     return () => { cancelled = true; };
   }, [loggedIn]);
 
-  // 변경 시 디바운스 자동 저장(로그인 + 하이드레이션 후).
+  // user_state 영속(선택/primary/제목만 — 롤은 프로필에 저장됨).
   useEffect(() => {
     if (!loggedIn || !hydrated.current) return;
     const h = window.setTimeout(() => {
-      api.saveState({ rolls, title, description, activeProfileId: activeProfile?.id ?? null })
-        .catch(() => {});
+      api.saveState({
+        rolls: [], title, description,
+        activeProfileId: primaryId, primaryProfileId: primaryId, activeProfileIds: selectedIds,
+      }).catch(() => {});
     }, 800);
     return () => window.clearTimeout(h);
-  }, [loggedIn, rolls, title, description, activeProfile]);
+  }, [loggedIn, title, description, primaryId, selectedIds]);
 
-  const addRoll = (r: Omit<SavedRoll, "id">) =>
-    setRolls((prev) => [...prev, { ...r, id: _id++ }]);
+  // 프로필 저장 + 로컬 상태 갱신.
+  function persist(prof: ScoringProfile) {
+    setProfiles((prev) => prev.map((p) => (p.id === prof.id ? prof : p)));
+    api.saveProfile(prof).catch(() => {});
+  }
+  // primary 프로필의 롤을 편집.
+  function editPrimaryRolls(fn: (cur: SavedRoll[]) => SavedRoll[]) {
+    if (!activeProfile) return;  // 활성 프로필 필요
+    persist({ ...activeProfile, rolls: fn((activeProfile.rolls as SavedRoll[]) ?? []) });
+  }
+  const addRoll = (r: Omit<SavedRoll, "id">) => editPrimaryRolls((cur) => [...cur, { ...r, id: _id++ }]);
   const addRolls = (rs: Omit<SavedRoll, "id">[]) =>
-    setRolls((prev) => [...prev, ...rs.map((r) => ({ ...r, id: _id++ }))]);
-  const removeRoll = (id: number) => setRolls((prev) => prev.filter((x) => x.id !== id));
-  const clear = () => setRolls([]);
+    editPrimaryRolls((cur) => [...cur, ...rs.map((r) => ({ ...r, id: _id++ }))]);
+  const clear = () => editPrimaryRolls(() => []);
+  // 합집합 표시이므로 롤이 속한 프로필을 찾아 제거.
+  const removeRoll = (id: number) => {
+    const owner = profiles.find((p) => ((p.rolls as SavedRoll[]) ?? []).some((r) => r.id === id));
+    if (!owner) return;
+    persist({ ...owner, rolls: ((owner.rolls as SavedRoll[]) ?? []).filter((r) => r.id !== id) });
+  };
+
+  const setSelection = (ids: string[], primary?: string | null) => {
+    setSelectedIds(ids);
+    if (primary !== undefined) setPrimaryId(primary);
+    else if (!ids.includes(primaryId ?? "")) setPrimaryId(ids[0] ?? null);
+  };
+  const setActiveProfile = (p: ScoringProfile | null) => {
+    if (!p || !p.id) { setSelectedIds([]); setPrimaryId(null); return; }
+    setProfiles((prev) => (prev.some((x) => x.id === p.id) ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p]));
+    setSelectedIds([p.id]);
+    setPrimaryId(p.id);
+  };
+  const refreshProfiles = async () => {
+    const list = await api.listProfiles().catch(() => null);
+    if (list) setProfiles(list.map((p) => ({ ...p, rolls: reid((p.rolls as SavedRoll[]) ?? []) })));
+  };
+  // 가중치 등 저장 — 해당 프로필의 현재 롤을 보존(빌더에서 추가한 롤 클로버 방지).
+  const upsertProfile = async (p: ScoringProfile): Promise<ScoringProfile | null> => {
+    const existing = profiles.find((x) => x.id === p.id);
+    const merged = { ...p, rolls: p.rolls ?? (existing?.rolls as SavedRoll[]) ?? [] };
+    const saved = await api.saveProfile(merged).catch(() => null);
+    if (saved) {
+      const withRolls = { ...saved, rolls: reid((saved.rolls as SavedRoll[]) ?? merged.rolls) };
+      setProfiles((prev) => (prev.some((x) => x.id === withRolls.id) ? prev.map((x) => (x.id === withRolls.id ? withRolls : x)) : [...prev, withRolls]));
+      return withRolls;
+    }
+    return null;
+  };
 
   const value = useMemo<WishlistCtx>(
-    () => ({ rolls, title, description, addRoll, addRolls, removeRoll, clear, setTitle, setDescription,
-             activeProfile, setActiveProfile }),
-    [rolls, title, description, activeProfile],
+    () => ({
+      rolls, title, description, addRoll, addRolls, removeRoll, clear, setTitle, setDescription,
+      profiles, selectedIds, primaryId, setSelection, refreshProfiles, upsertProfile,
+      activeProfile, setActiveProfile,
+    }),
+    [rolls, title, description, profiles, selectedIds, primaryId, activeProfile],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -31,19 +31,13 @@ function blankProfile(): ScoringProfile {
 export function ScoringProfileEditor() {
   const { t } = useLanguage();
   const { loggedIn, login } = useAuth();
-  const { activeProfile, setActiveProfile, rolls } = useWishlist();
-  const [profiles, setProfiles] = useState<ScoringProfile[]>([]);
+  const {
+    activeProfile, setActiveProfile, rolls,
+    profiles, refreshProfiles, upsertProfile, selectedIds, setSelection,
+  } = useWishlist();
   const [draft, setDraft] = useState<ScoringProfile>(activeProfile ?? blankProfile());
   const [status, setStatus] = useState("");
   const [contexts, setContexts] = useState<DeriveContext[]>([]);
-
-  useEffect(() => {
-    refresh();
-  }, []);
-
-  function refresh() {
-    api.listProfiles().then(setProfiles).catch(() => {});
-  }
 
   function contextLabel(context: DeriveContext): string {
     if (context.kind === "type") {
@@ -101,11 +95,12 @@ export function ScoringProfileEditor() {
   async function save() {
     if (!loggedIn) { setStatus(t.app.loginHint); return; }
     try {
-      const saved = await api.saveProfile(draft);
-      setDraft(saved);
-      setActiveProfile(saved);
-      refresh();
-      setStatus(`${t.scoring.saved}: ${saved.name}`);
+      const saved = await upsertProfile(draft);   // 롤 보존하며 저장
+      if (saved) {
+        setDraft(saved);
+        setActiveProfile(saved);
+        setStatus(`${t.scoring.saved}: ${saved.name}`);
+      }
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     }
@@ -115,8 +110,21 @@ export function ScoringProfileEditor() {
     if (!id) return;
     await api.deleteProfile(id);
     if (draft.id === id) setDraft(blankProfile());
-    if (activeProfile?.id === id) setActiveProfile(null);
-    refresh();
+    if (selectedIds.includes(id)) setSelection(selectedIds.filter((x) => x !== id));
+    await refreshProfiles();
+  }
+
+  // 체크박스: 내 리스트에 합칠 프로필 토글.
+  function toggleSelected(id?: string | null) {
+    if (!id) return;
+    const next = selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id];
+    setSelection(next);
+  }
+  // 기준(primary) 지정 — 선택에 없으면 추가하고 가중치/편집 대상으로.
+  function makePrimary(profile: ScoringProfile) {
+    setDraft(profile);
+    const ids = profile.id && !selectedIds.includes(profile.id) ? [...selectedIds, profile.id] : selectedIds;
+    setSelection(ids, profile.id ?? null);
   }
 
   function exportJson() {
@@ -289,20 +297,30 @@ export function ScoringProfileEditor() {
             </div>
           )}
           {profiles.length === 0 && <div className="empty">{t.scoring.noProfiles}</div>}
-          {profiles.map((profile) => (
-            <div key={profile.id} className={`roll-item ${activeProfile?.id === profile.id ? "wild" : ""}`}>
-              <div className="r-main">
-                <div className="r-name">{profile.name}</div>
-                <div className="r-perks">
-                  {Object.keys(profile.stat_weights || {}).length} {t.scoring.statsCount}
-                  {Object.keys(profile.context_weights || {}).length > 0 ? ` · ${Object.keys(profile.context_weights || {}).length} ${t.scoring.contextCount}` : ""}
-                  {profile.use_wishlist_weights ? ` · ${t.scoring.wishlistWeighted}` : ""}
+          {profiles.map((profile) => {
+            const isSel = !!profile.id && selectedIds.includes(profile.id);
+            const isPrimary = activeProfile?.id === profile.id;
+            return (
+              <div key={profile.id} className={`roll-item ${isPrimary ? "wild" : ""}`}>
+                <label className="prof-check" title={t.scoring.includeInList}>
+                  <input type="checkbox" checked={isSel} onChange={() => toggleSelected(profile.id)} />
+                </label>
+                <div className="r-main">
+                  <div className="r-name">{profile.name}{isPrimary ? " ★" : ""}</div>
+                  <div className="r-perks">
+                    {profile.rolls?.length ?? 0} {t.wishlist.rolls}
+                    {` · ${Object.keys(profile.stat_weights || {}).length} ${t.scoring.statsCount}`}
+                    {profile.use_wishlist_weights ? ` · ${t.scoring.wishlistWeighted}` : ""}
+                  </div>
                 </div>
+                <button className="btn ghost" style={{ padding: "4px 8px", fontSize: 12 }}
+                        onClick={() => makePrimary(profile)}>
+                  {isPrimary ? t.scoring.active : t.scoring.activate}
+                </button>
+                <button className="icon-btn" title={t.scoring.delete} onClick={() => del(profile.id)}>✕</button>
               </div>
-              <button className="btn ghost" style={{ padding: "4px 8px", fontSize: 12 }} onClick={() => { setDraft(profile); setActiveProfile(profile); }}>{t.scoring.activate}</button>
-              <button className="icon-btn" title={t.scoring.delete} onClick={() => del(profile.id)}>✕</button>
-            </div>
-          ))}
+            );
+          })}
           <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => setActiveProfile(null)}>
             {t.scoring.disableScoring}
           </button>

@@ -1,7 +1,7 @@
 """Pydantic 입출력 스키마."""
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -155,6 +155,8 @@ class ScoringProfile(BaseModel):
     column_weights: Dict[str, float] = Field(
         default_factory=lambda: {"trait": 1.0, "barrel": 0.35, "magazine": 0.35, "origin": 0.2, "intrinsic": 0.0})
     thresholds: Dict[str, float] = Field(default_factory=lambda: {"god": 75.0, "viable": 40.0})
+    # 이 프로필의 위시리스트 롤(프론트 SavedRoll 형태, 불투명). 프로필=롤모음+가중치.
+    rolls: List[Dict[str, Any]] = Field(default_factory=list)
     updated_at: Optional[str] = None
 
 

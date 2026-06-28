@@ -184,6 +184,7 @@ export const en = {
     statsCount: "stats",
     contextCount: "contexts",
     wishlistWeighted: "wishlist weighted",
+    includeInList: "Include in My List",
     combo: "Combo",
     sameWeapon: "Same weapon",
     sameFrame: "Same frame",
