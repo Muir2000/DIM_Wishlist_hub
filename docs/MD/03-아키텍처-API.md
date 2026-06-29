@@ -8,8 +8,9 @@
 | 백엔드 | FastAPI + Uvicorn (Python 3.8+ 호환). |
 | DB | SQLite (자체 경량 스키마, 매니페스트/시드에서 적재). |
 | 적재 | Python + httpx (Bungie 매니페스트, voltron.txt). |
-| 배포 | Docker Compose (backend + frontend(nginx)), 포트 127.0.0.1 바인딩. |
-| 인증(고도화) | Bungie OAuth (Public/Confidential, scope 64). |
+| 배포 | Docker Compose (backend + frontend(nginx)). 기본 포트 127.0.0.1 바인딩, `.env` `WEB_BIND=0.0.0.0` 시 LAN 공유. |
+| 인증/멀티유저 | Bungie OAuth (Public/Confidential, scope 64) + **HMAC 서명 세션 쿠키**. 프로필·위시리스트·창고를 **사용자(membership)별 분리 저장**. |
+| 다국어 | i18n(한국어 기본 + 영어 토글), UI 문자열 리소스(`i18n/ko.ts`·`en.ts`) + 데이터 `name_en` 폴백. |
 
 ## 디렉터리 구조
 
@@ -22,15 +23,18 @@ DIM_Wishlist_hub/
 │  ├─ scoring.py         # 위시리스트 기반·퍽 롤 중심 점수화
 │  ├─ main.py            # FastAPI 진입점 + CORS + 시작 시 DB 초기화
 │  ├─ config.py / db.py / repo.py / models.py / serialize.py / labels.py
+│  ├─ session.py         # HMAC 서명 세션 쿠키(멀티유저) 발급/검증
 │  ├─ refdata/           # watermark-to-season.json, season-names.json
-│  └─ routers/           # weapons, wishlist, meta, scoring, auth, inventory
+│  └─ routers/           # weapons, wishlist, meta, scoring, auth, inventory, state
 ├─ backend/seed/         # build_seed.py → seed_data.json
 ├─ backend/tests/        # test_compiler.py, test_query.py, test_scoring.py (총 74개)
 ├─ ingest/               # manifest_ingest.py, voltron_bootstrap.py
 ├─ frontend/src/
-│  ├─ App.tsx, main.tsx, store.tsx, api.ts, theme.css
-│  ├─ i18n/              # LanguageProvider/useLanguage, en.ts(영문 리소스), 라벨 헬퍼 (다국어)
-│  └─ components/        # WeaponSearch, PerkGrid, PerkIcon, StatsPanel, Builder,
+│  ├─ App.tsx, main.tsx, store.tsx, api.ts, auth.tsx, theme.css
+│  ├─ i18n/              # LanguageProvider/useLanguage(기본 ko) + en.ts·ko.ts + 라벨 헬퍼 (한/영)
+│  ├─ hooks/             # useToggleSet (다중선택 공용)
+│  ├─ utils/             # clipboard (useCopyState 공용)
+│  └─ components/        # WeaponSearch, PerkGrid, PerkIcon, StatsPanel, Builder, OwnedRoll,
 │                        #   WishlistPanel, ListRail, MetaDashboard, ScoringProfileEditor, InventoryCleanup
 ├─ scripts/dev-local.mjs        # WebDAV 우회 dev 실행
 ├─ scripts/security_check.py    # 보안 검증(정적+런타임 21항목)
@@ -56,18 +60,20 @@ React SPA ─(/api, nginx 또는 Vite 프록시)─ FastAPI(검색/패싯/컴파
 | 테이블 | 핵심 컬럼 |
 |---|---|
 | `manifest_meta` | version, ingested_at, locale, source(seed/manifest) |
-| `weapons` | item_hash(PK), name_ko/en, icon, watermark, tier, weapon_subtype, ammo_type, slot, default_damage_type, **frame, frame_hash, is_holofoil, is_adept, is_featured, variant_group**, redacted |
+| `weapons` | item_hash(PK), name_ko/en, icon, watermark, tier, weapon_subtype, ammo_type, slot, default_damage_type, **frame, frame_en, frame_hash, is_holofoil, is_adept, is_featured, variant_group**, redacted |
 | `perks` | plug_hash(PK), name_ko/en, **description_ko, description_en**, icon, plug_category, is_enhanced, base_plug_hash |
 | `weapon_perks` | weapon_hash, column_index, column_kind, plug_hash, currently_can_roll, is_curated |
 | `roll_stats` | weapon_hash, column_index, plug_hash, count, source(voltron) |
 | `stat_defs` | stat_hash(PK), key, name_ko, name_en |
 | `weapon_stats` | weapon_hash, stat_key, value (표시 스탯, long-format) |
 | `perk_stats` | plug_hash, stat_key, value, is_conditional (퍽 델타) |
-| `scoring_profiles` | id(PK), name, json(blob), updated_at |
-| `oauth_tokens` | membership_id(PK), membership_type, access/refresh_token, expires_at |
-| `inventory_items` | item_instance_id(PK), membership_id, item_hash, plug_hashes(JSON), stats(JSON), power, synced_at |
+| `scoring_profiles` | id(PK), name, json(blob), **owner**(membership_id, 사용자별), updated_at |
+| `user_state` | **owner(PK)**, json({rolls,title,description,activeProfileId}), updated_at — 사용자별 빌더 상태 |
+| `oauth_tokens` | membership_id(PK), membership_type, access/refresh_token, expires_at, **display_name** |
+| `inventory_items` | item_instance_id(PK), membership_id, item_hash, plug_hashes(JSON), stats(JSON), power, synced_at, **reusable_plugs**(JSON; 310 열별 선택 가능 퍽, 제작=다중) |
 
-> `apply_schema` 가 기존 DB 에 누락 컬럼을 `ALTER TABLE` 로 마이그레이션(description_*, is_holofoil 등).
+> `apply_schema` 가 기존 DB 에 누락 컬럼을 `ALTER TABLE` 로 마이그레이션(description_*, frame_en, is_holofoil,
+> scoring_profiles.owner, oauth_tokens.display_name, inventory_items.reusable_plugs 등) — 레거시 DB 호환.
 
 ## API 엔드포인트
 
@@ -83,12 +89,18 @@ React SPA ─(/api, nginx 또는 Vite 프록시)─ FastAPI(검색/패싯/컴파
 | `POST /compile` · `POST /export` | 단일 롤 미리보기 · 완성 `.txt`(조합 폭발 시 400) |
 | `POST /import-wishlist` | 외부 DIM `.txt` → 롤 목록(제목/설명/집계). text 최대 8MB |
 | `GET /meta/top-weapons` · `GET /meta/weapon/{hash}/perk-popularity` | 인기 무기 · 열별 인기도 |
-| `GET/POST/DELETE /scoring-profiles[/{id}]` | 점수 프로필 CRUD(JSON=공유 단위) |
-| `POST /score` · `POST /scoring/derive-weights` | 점수·분류·breakdown · 위시리스트→가중치 도출 |
-| `GET /auth/bungie/login` · `/callback` | Bungie OAuth (state TTL/상한 CSRF) |
-| `GET /me/status` · `POST /me/sync` · `/me/cleanup` · `/me/export-trashlist` · `/me/demo-inventory` | 인벤토리 연동/정리 |
+| `GET/POST/DELETE /scoring-profiles[/{id}]` | 점수 프로필 CRUD(JSON=공유 단위). **로그인 시 사용자(owner)별** 목록 |
+| `POST /score` | 점수·분류·breakdown·coverage·max_possible |
+| `POST /score/perk-weights` | 퍽별 가중치 맵(+scale·max_possible·coverage·column_weights·kinds) — 빌더 퍽 배지 |
+| `POST /score/tags` | **태그별(PvE/PvP/GM/레이드) 점수 + 추천 퍽** + overall — 빌더 태그 점수/추천 |
+| `POST /scoring/derive-weights` | 위시리스트(롤/텍스트)→컨텍스트 가중치 도출 |
+| `GET /auth/bungie/login` · `/callback` · `GET /auth/me` · `POST /auth/logout` | Bungie OAuth(state CSRF) + 세션 쿠키 발급/조회/해제 |
+| `GET /me/state` · `PUT /me/state` | 사용자별 빌더 상태(롤/제목/설명/활성 프로필) 조회·저장 |
+| `GET /me/status` · `POST /me/sync` · `/me/demo-inventory` | 창고 연동(동기화/데모) |
+| `POST /me/cleanup` · `/me/weapon-rolls` · `/me/export-trashlist` · `GET /me/debug-rolls` | 창고 채점·무기별 롤·트래시리스트·진단 |
 
-Swagger UI: `http://127.0.0.1:8000/docs` (로컬 전용 — 도커 포트 127.0.0.1 바인딩).
+Swagger UI: `http://127.0.0.1:8000/docs` (백엔드 포트는 127.0.0.1 바인딩 — 로컬 전용).
+멀티유저: `/scoring-profiles`·`/me/*` 는 세션 쿠키의 membership 으로 데이터를 분리한다(미로그인 시 레거시/공개 범위).
 
 ## 컴파일러 핵심 (정확성)
 
